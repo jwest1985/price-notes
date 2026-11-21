@@ -162,7 +162,7 @@ def _service_of(channel_id):
 
 
 POST_FIELDS = ("id text dueAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } "
-               "... on ThreadsPostMetadata { thread { text } topic } }")
+               "... on ThreadsPostMetadata { thread { text } topic } ... on BlueskyPostMetadata { thread { text } } }")
 BASIC_FIELDS = "id text dueAt status channelService tags { id name }"
 
 
@@ -205,7 +205,7 @@ def add_disclosure(key, mutation, node):
         if svc == "threads":
             inp["metadata"] = {"threads": {"type": "post", "thread": parts, **({"topic": meta["topic"]} if meta.get("topic") else {})}}
         else:
-            inp["metadata"] = {"twitter": {"thread": parts}}
+            inp["metadata"] = {svc or "twitter": {"thread": parts}}
         return gql(key, mutation, {"input": inp})
     return gql(key, mutation, {"input": {"id": node["id"], "text": with_disclosure(node.get("text") or "", svc)}})
 
@@ -220,7 +220,7 @@ def edit_main_text(key, mutation, node, new_text):
         if node.get("channelService") == "threads":
             inp["metadata"] = {"threads": {"type": "post", "thread": parts, **({"topic": meta["topic"]} if meta.get("topic") else {})}}
         else:
-            inp["metadata"] = {"twitter": {"thread": parts}}
+            inp["metadata"] = {node.get("channelService") or "twitter": {"thread": parts}}
     return gql(key, mutation, {"input": inp})
 
 
@@ -247,7 +247,7 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
     if THREADS_TOPIC and _service_of(channel_id) == "threads":
         inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text)}}  # Threads topic tag / community
     svc = _service_of(channel_id)
-    if reply_link and svc in ("twitter", "threads"):
+    if reply_link and svc in ("twitter", "threads", "bluesky"):
         main, link = split_link(text)
         if link:  # deal posts on X and Threads: the link goes in the first reply (link posts are shown to fewer people)
             had = bool(HAS_DISCLOSURE.search(main))
@@ -255,10 +255,10 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
             inp["text"] = main
             reply = with_disclosure(link, svc) if had else link
             thread = [{"text": main, "assets": assets}, {"text": reply}]
-            if svc == "twitter":
-                inp["metadata"] = {"twitter": {"thread": thread}}
-            else:
+            if svc == "threads":
                 inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text), "thread": thread}}
+            else:  # twitter / bluesky
+                inp["metadata"] = {svc: {"thread": thread}}
     data = gql(key, CREATE, {"input": inp})
     res = data["createPost"]
     if res.get("__typename") != "PostActionSuccess":
