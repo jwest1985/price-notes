@@ -300,9 +300,47 @@ def money(text):
 
 
 
+US_ZIP = "10001"  # New York: same as you use, so we see the same US price and stock
+
+
+def amazon_set_zip(page):
+    """Set Amazon's "Deliver to" to a US ZIP once per browser session (like you do with 10001)."""
+    ctx = page.context
+    if getattr(ctx, "_zip_set", None) is not None:
+        return ctx._zip_set
+    ok = False
+    try:
+        page.goto("https://www.amazon.com/", wait_until="domcontentloaded", timeout=25000)
+        page.wait_for_timeout(1500)
+        page.click("#nav-global-location-popover-link, #glow-ingress-block", timeout=6000)
+        page.wait_for_selector("#GLUXZipUpdateInput", timeout=8000)
+        page.fill("#GLUXZipUpdateInput", US_ZIP)
+        page.click("#GLUXZipUpdate input, #GLUXZipUpdate, [aria-labelledby='GLUXZipUpdate-announce']", timeout=5000)
+        page.wait_for_timeout(2500)
+        for sel in ("#GLUXConfirmClose", ".a-popover-footer input[name='glowDoneButton']", "button[name='glowDoneButton']"):
+            try:
+                page.click(sel, timeout=1500)
+                break
+            except Exception:
+                pass
+        page.wait_for_timeout(1000)
+        page.reload(wait_until="domcontentloaded", timeout=20000)
+        where = re.sub(r"\s+", " ", page.inner_text("#glow-ingress-line2", timeout=3000)).strip()
+        ok = US_ZIP in where
+        print(f"   amazon: deliver-to set to {where!r}" + ("" if ok else " (ZIP not confirmed)"))
+    except Exception as e:
+        print(f"   amazon: couldn't set the ZIP ({type(e).__name__}); using Amazon's default US location")
+    try:
+        ctx._zip_set = ok
+    except Exception:
+        pass
+    return ok
+
+
 def amazon_open(page, url):
     """Open an Amazon product page from GitHub's US servers; one retry after a pause if Amazon blocks us.
     Logs which way the price was checked (counted in data/amazon_checks.json for the nightly report)."""
+    amazon_set_zip(page)
     for attempt in (1, 2):
         try:
             if open_page(page, url) and page.query_selector("#productTitle, #dp, #ppd"):
