@@ -523,6 +523,7 @@ PLATFORMS = [(r"playstation 5|\bps5\b", "PS5"), (r"playstation 4|\bps4\b", "PS4"
 def clean_item(item, store):
     """Tidy a product name for a post: no "[Prime]"-style labels, no raw Amazon keyword titles, no ALL CAPS."""
     item = re.sub(r"^\s*(?:\[[^\]]{1,20}\]\s*)+", "", item).strip()
+    item = re.sub(r"\s*[\u2122\u00ae\u00a9]", "", item).strip()  # no TM/(R)/(C) marks in posts
     if store == "Amazon" and (" | " in item or len(item) > 90 or
                               re.search(r" - (?:PlayStation|Nintendo|Xbox|PS[45])|\[Digital (?:Code|Download)\]", item, re.I)):
         item = shorten_title(item)

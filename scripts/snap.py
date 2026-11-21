@@ -769,6 +769,7 @@ def alt_text(d, kind):
     """Alt text built only from facts we know for certain: the deal's item name, the store, and where the picture came from."""
     first = d["posts"]["x"].split("http")[0]
     item = (d.get("item") or re.split(r" (?:is|are) (?:\$|free\b)| up for | now ", first)[0]).strip()
+    item = re.sub(r"\s*[\u2122\u00ae\u00a9]", "", item).strip()  # no TM/(R)/(C) marks
     store = d.get("store") or host_of(d.get("url")) or "the store"
     # short and factual, product name first (what people and search engines look for)
     if kind.startswith("box art"):
