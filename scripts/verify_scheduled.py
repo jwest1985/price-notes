@@ -184,37 +184,49 @@ def _same_deal(item, price, text):
     return overlap >= 0.6 and any(p is not None and abs(p - price) < 0.011 for p in prices)
 
 
+SLICKDEALS_DAYS = 7
+
+
 def check_slickdeals(d):
-    """A Slickdeals post from the last 24 hours for the same product at the same price, not marked expired."""
+    """A Slickdeals Amazon deal for the same product at the same price, posted in the last 7 days and
+    NOT marked expired (read from the deal's own page)."""
     price = num(d.get("price"))
     q = urllib.parse.quote_plus(" ".join(list(_tokens(d.get("item")))[:6]))
     body = collect.fetch(f"https://slickdeals.net/newsearch.php?q={q}&searcharea=deals&searchin=first&rss=1")
     for it in collect.parse_feed(body):
-        fresh = it.get("date") and NOW - it["date"] < timedelta(hours=24)
-        if fresh and "expired" not in it["title"].lower() and re.search(r"amazon", it["title"] + it.get("summary", ""), re.I) \
-                and _same_deal(d.get("item"), price, it["title"]):
-            return "live", price, "per Slickdeals"
-    return "unknown", None, "not on Slickdeals in the last day"
+        fresh = it.get("date") and NOW - it["date"] < timedelta(days=SLICKDEALS_DAYS)
+        text = it["title"] + " " + (it.get("summary") or "")
+        if not (fresh and re.search(r"amazon", text, re.I) and _same_deal(d.get("item"), price, text)):
+            continue
+        try:
+            page = collect.fetch(re.sub(r"\?.*$", "", it["link"]))
+            page = page.decode("utf-8", "replace") if isinstance(page, bytes) else page
+        except Exception:
+            continue
+        m = re.search(r'"isExpiredDeal"\s*:\s*"(Yes|No)"', page)
+        if m and m.group(1) == "No":
+            return "live", price, "per Slickdeals (active deal)"
+    return "unknown", None, "no active Slickdeals deal at this price"
 
 
 def check_deal_accounts(d):
-    """Wario64 or CheapAssGamer posted the same product on Amazon at the same price today (Toronto time),
-    the same day our post goes out."""
+    """Wario64 or CheapAssGamer posted the same product on Amazon at the same price in the last 24 hours."""
     price = num(d.get("price"))
     for actor in DEAL_ACCOUNTS:
         feed = jget("https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?filter=posts_no_replies&limit=100&actor=" + actor)
         for f in feed.get("feed", []):
             rec = f["post"]["record"]
             when = collect.parse_date(rec.get("createdAt"))
-            same_day = when and when.astimezone(LOCAL).date() == NOW.astimezone(LOCAL).date()
-            if same_day and re.search(r"amazon|amzn", rec.get("text", ""), re.I) \
+            recent = when and NOW - when < timedelta(hours=24)
+            if recent and re.search(r"amazon|amzn", rec.get("text", ""), re.I) \
                     and _same_deal(d.get("item"), price, rec.get("text", "")):
                 return "live", price, f"per {actor.split('.')[0]}"
-    return "unknown", None, "not posted by Wario64 or CheapAssGamer today"
+    return "unknown", None, "not posted by Wario64 or CheapAssGamer in the last 24 hours"
 
 
 def amazon_backup(d):
-    """Amazon blocked our check: camelcamelcamel, then Slickdeals, then Wario64/CheapAssGamer on Bluesky."""
+    """Amazon blocked our check. Any ONE of these confirms the price: camelcamelcamel (scanned within a day),
+    an active Slickdeals deal (last 7 days), or Wario64/CheapAssGamer on Bluesky (last 24 hours)."""
     notes = []
     for fn in (check_camel_amazon, check_slickdeals, check_deal_accounts):
         try:
@@ -247,17 +259,22 @@ def check_camel(site, pid):
 def check_page(d, page):
     """Amazon and other stores' product pages, in the real browser."""
     import snap
-    if not snap.open_page(page, d["url"]):
-        if "amazon." in d["url"]:
-            return amazon_backup(d)  # Amazon blocked us: camelcamelcamel, Slickdeals, Wario64/CheapAssGamer
-        return "unknown", None, "the store blocked the check"
     if "amazon." in d["url"]:
+        if not snap.amazon_open(page, d["url"]):
+            r = amazon_backup(d)  # Amazon blocked us: camelcamelcamel, Slickdeals or Wario64/CheapAssGamer
+            snap.count_amazon_check("backup" if r[0] in ("live", "out_of_stock") else "unconfirmed")
+            return r
         in_stock, price = snap.amazon_live(page)
         if not price and in_stock:
-            return amazon_backup(d)
+            r = amazon_backup(d)
+            snap.count_amazon_check("backup" if r[0] in ("live", "out_of_stock") else "unconfirmed")
+            return r
+        snap.count_amazon_check("live")
         if not in_stock:
             return "out_of_stock", None, ""
         return ("live", price, "") if price else ("unknown", None, "Amazon showed no price")
+    elif not snap.open_page(page, d["url"]):
+        return "unknown", None, "the store blocked the check"
     # most stores publish price and stock in the page's product data (schema.org)
     offers = page.evaluate("""() => {
       const out = [];

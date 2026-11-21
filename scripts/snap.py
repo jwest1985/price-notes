@@ -24,6 +24,7 @@ import re
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -299,6 +300,42 @@ def money(text):
 
 
 
+def amazon_open(page, url):
+    """Open an Amazon product page from GitHub's US servers; one retry after a pause if Amazon blocks us.
+    Logs which way the price was checked (counted in data/amazon_checks.json for the nightly report)."""
+    for attempt in (1, 2):
+        try:
+            if open_page(page, url) and page.query_selector("#productTitle, #dp, #ppd"):
+                try:
+                    where = re.sub(r"\s+", " ", page.inner_text("#glow-ingress-line2", timeout=1000)).strip()
+                except Exception:
+                    where = "?"
+                print(f"   amazon: checked live on Amazon (try {attempt}, deliver to: {where})")
+                return True
+        except Exception as e:
+            print(f"   amazon: page error on try {attempt} ({type(e).__name__})")
+        if attempt == 1:
+            page.wait_for_timeout(6000)
+    print("   amazon: blocked twice, using the backups")
+    return False
+
+
+def count_amazon_check(how):
+    """how: live / backup / unconfirmed. Daily counts, so we can see how often Amazon blocks us."""
+    import json as _json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "amazon_checks.json")
+    try:
+        data = _json.load(open(path))
+    except Exception:
+        data = {}
+    day = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Toronto")).date().isoformat()
+    data.setdefault(day, {}).setdefault(how, 0)
+    data[day][how] += 1
+    for k in sorted(data)[:-14]:
+        data.pop(k)
+    _json.dump(data, open(path, "w"), indent=1, sort_keys=True)
+
+
 def amazon_live(page):
     """(in_stock, price) from an open Amazon product page; price None if it can't be read."""
     try:
@@ -356,7 +393,7 @@ def amazon_name(page):
 
 
 def amazon_picture(page, d, path):
-    if not open_page(page, d["url"]):
+    if not amazon_open(page, d["url"]):
         # Amazon blocked us: fall back to camelcamelcamel's tracked Amazon price (scanned within a day)
         try:
             import verify_scheduled as vs
@@ -375,7 +412,10 @@ def amazon_picture(page, d, path):
         elif state != "live":
             # nothing confirmed it (camelcamelcamel, Slickdeals, Wario64, CheapAssGamer): skip the deal entirely
             d["skip"] = f"Amazon price unconfirmed - {detail}"
+        count_amazon_check("backup" if state in ("live", "out_of_stock") else "unconfirmed")
+        print(f"   amazon backup: {state} {detail}")
         return "no picture (Amazon deal: no Amazon images, by rule)"
+    count_amazon_check("live")
     # the product's real name from Amazon (feeds sometimes give only part of it, e.g. "KNIGHT RIDER")
     full = amazon_name(page)
     old = d.get("item") or ""

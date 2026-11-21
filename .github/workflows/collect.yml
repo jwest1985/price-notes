@@ -123,6 +123,12 @@ jobs:
           AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         run: python scripts/verify_scheduled.py
 
+      - name: Schedule finished drafts
+        if: steps.gate.outputs.go == 'true' && !inputs.seed
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+        run: python scripts/auto_schedule.py
+
       - name: Pack state
         if: always() && steps.gate.outputs.go == 'true'
         env:

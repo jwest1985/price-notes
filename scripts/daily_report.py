@@ -90,6 +90,10 @@ def main():
 
     st = pb.load(os.path.join(pb.DATA, "status.json"), {})
     report["pipeline"] = [f"{f['name']}: {f['error'][:100]}" for f in st.get("feeds", []) if f.get("error")]
+    try:  # how the Amazon prices were checked that day: live on Amazon, by a backup, or not confirmed
+        report["amazon_checks"] = pb.load(os.path.join(pb.DATA, "amazon_checks.json"), {}).get(DAY.isoformat(), {})
+    except Exception:
+        report["amazon_checks"] = {}
     pb.save(os.path.join(pb.DATA, "daily_report.json"), report)
 
     lines = [f"# Daily report {DAY:%b %-d, %Y}", "",

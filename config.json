@@ -1,4 +1,5 @@
 {
+  "auto_schedule": true,
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,
