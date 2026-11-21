@@ -916,6 +916,9 @@ def deal_variants(d):
         prep = "on" if digital else "at"
         code = f" with code {d['code']}" if d.get("code") else ""
         extras = [x for x in (d.get("ship"), d.get("note")) if x]
+        # no nested brackets, and no "Reg. $X" / "was $X" claims we can't confirm with the store
+        extras = [re.sub(r"^\((.*)\)$", r"\1", x.strip()) for x in extras]
+        extras = [x for x in extras if x and not re.match(r"(?:reg(?:ular)?\.?|list|was|orig(?:inal)?\.?|msrp)\b", x, re.I)]
         ex = " (" + ", ".join(extras) + ")" if extras else ""
         p = f"${d['price']}"
         out = [base,
@@ -949,6 +952,9 @@ def deal_sentence(d):
         if d.get("code"):
             s += f" w/ code {d['code']}"
         extras = [x for x in (d.get("ship"), d.get("note")) if x]
+        # no nested brackets, and no "Reg. $X" / "was $X" claims we can't confirm with the store
+        extras = [re.sub(r"^\((.*)\)$", r"\1", x.strip()) for x in extras]
+        extras = [x for x in extras if x and not re.match(r"(?:reg(?:ular)?\.?|list|was|orig(?:inal)?\.?|msrp)\b", x, re.I)]
         if extras:
             s += " (" + ", ".join(extras) + ")"
         return s
