@@ -161,7 +161,8 @@ def _service_of(channel_id):
     return ""
 
 
-POST_FIELDS = "id text dueAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } }"
+POST_FIELDS = ("id text dueAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } "
+               "... on ThreadsPostMetadata { thread { text } topic } }")
 BASIC_FIELDS = "id text dueAt status channelService tags { id name }"
 
 
@@ -186,9 +187,14 @@ def full_text(node):
 def edit_main_text(key, mutation, node, new_text):
     """Change the main text of a post; for X threads the first thread part changes with it."""
     inp = {"id": node["id"], "text": new_text}
-    thread = (node.get("metadata") or {}).get("thread") or []
+    meta = node.get("metadata") or {}
+    thread = meta.get("thread") or []
     if len(thread) > 1:
-        inp["metadata"] = {"twitter": {"thread": [{"text": new_text}] + [{"text": t.get("text") or ""} for t in thread[1:]]}}
+        parts = [{"text": new_text}] + [{"text": t.get("text") or ""} for t in thread[1:]]
+        if node.get("channelService") == "threads":
+            inp["metadata"] = {"threads": {"type": "post", "thread": parts, **({"topic": meta["topic"]} if meta.get("topic") else {})}}
+        else:
+            inp["metadata"] = {"twitter": {"thread": parts}}
     return gql(key, mutation, {"input": inp})
 
 
@@ -214,12 +220,17 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
     }
     if THREADS_TOPIC and _service_of(channel_id) == "threads":
         inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text)}}  # Threads topic tag / community
-    if reply_link and _service_of(channel_id) == "twitter":
+    svc = _service_of(channel_id)
+    if reply_link and svc in ("twitter", "threads"):
         main, link = split_link(text)
-        if link:  # X: the link goes in the first reply (X shows link posts to fewer people)
+        if link:  # deal posts on X and Threads: the link goes in the first reply (link posts are shown to fewer people)
             inp["text"] = main
-            reply = with_disclosure(link, "twitter") if HAS_DISCLOSURE.search(main) else link  # #ad next to the link too
-            inp["metadata"] = {"twitter": {"thread": [{"text": main, "assets": assets}, {"text": reply}]}}
+            reply = with_disclosure(link, svc) if HAS_DISCLOSURE.search(main) else link  # disclosure next to the link too
+            thread = [{"text": main, "assets": assets}, {"text": reply}]
+            if svc == "twitter":
+                inp["metadata"] = {"twitter": {"thread": thread}}
+            else:
+                inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text), "thread": thread}}
     data = gql(key, CREATE, {"input": inp})
     res = data["createPost"]
     if res.get("__typename") != "PostActionSuccess":
@@ -230,7 +241,8 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
 TAGS = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("buffer_tags", {})
 ATTENTION_PATH = os.path.join(DATA, "attention.json")
 HELD_PATH = os.path.join(DATA, "held_deals.json")
-TRIAL_PATH = os.path.join(DATA, "x_link_reply_trial.json")
+# deal posts with the link in the first reply instead of the main post (config "link_in_reply": apps)
+LINK_IN_REPLY = set((load(os.path.join(ROOT, "config.json"), {}) or {}).get("link_in_reply", []))
 
 
 def mark_held(deal_id):
@@ -420,22 +432,16 @@ def main():
         status["errors"].append(f"daily pace reached ({sent_today}/{DAILY_LIMIT}); {len(candidates)} waiting")
 
     attention = []
-    cfg_all = load(os.path.join(ROOT, "config.json"), {}) or {}
-    trial = load(TRIAL_PATH, {})
     for d in candidates[:min(MAX_DRAFTS_PER_RUN, room)]:
         posted = {}
-        x_reply_left = int(cfg_all.get("x_link_in_reply_trial", 0)) - trial.get("used", 0)
         for c in channels:
             text = d["posts"].get(SERVICE_TEXT[c["service"]]) or d["posts"].get("x")
             if needs_disclosure(text, d.get("store")):
                 text = with_disclosure(text, c["service"])
-            reply_link = c["service"] == "twitter" and d.get("kind") == "deal" and x_reply_left > 0
+            reply_link = d.get("kind") == "deal" and c["service"] in LINK_IN_REPLY
             try:
                 r = create_draft(key, c["id"], text, d.get("picture") or "", d.get("alt") or "",
                                  [TAGS[n] for n in draft_tags(d)], d.get("pictures"), d.get("alts"), reply_link)
-                if reply_link:
-                    trial["used"] = trial.get("used", 0) + 1
-                    save(TRIAL_PATH, trial)
                 posted[c["service"]] = r["id"]
                 if r.get("_no_picture"):
                     status["errors"].append(f"{d['id']} {c['service']}: Buffer refused the picture, sent text only")
