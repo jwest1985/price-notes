@@ -135,9 +135,8 @@ def main():
                     pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "tagIds": ids}})
                 continue
             for p in posts:  # the ad disclosure on every affiliate post
-                text = p.get("text") or ""
-                if pb.needs_disclosure(pb.full_text(p), d.get("store")) and not pb.HAS_DISCLOSURE.search(text):
-                    pb.edit_main_text(key, vs.EDIT, p, pb.with_disclosure(text, p["channelService"]))
+                if pb.needs_disclosure(pb.full_text(p), d.get("store")) and pb.disclosure_missing(p):
+                    pb.add_disclosure(key, vs.EDIT, p)
             slot = next(slots, None)
             if slot is None:
                 print("auto-schedule: no free slot in the next hours; the rest waits for the next run")

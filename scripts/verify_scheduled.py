@@ -392,11 +392,9 @@ def main():
         when = collect.parse_date(node.get("dueAt"))
         text = node.get("text") or ""
         store = (drafts.get(post_to_deal.get(pid)) or {}).get("store", "")
-        if pb.needs_disclosure(pb.full_text(node), store) and when and when <= NOW + timedelta(hours=12) and not pb.HAS_DISCLOSURE.search(text):
-            fixed = pb.with_disclosure(text, node.get("channelService"))
+        if pb.needs_disclosure(pb.full_text(node), store) and when and when <= NOW + timedelta(hours=12) and pb.disclosure_missing(node):
             try:
-                pb.edit_main_text(key, EDIT, node, fixed)
-                node["text"] = fixed
+                pb.add_disclosure(key, EDIT, node)
                 print("verify: added the missing ad disclosure to", pid)
             except Exception as e:
                 # can't add it: pull the post back to Drafts rather than let it go out without one

@@ -184,6 +184,32 @@ def full_text(node):
     return "\n".join(parts)
 
 
+def disclosure_missing(node):
+    """True if the post that carries the link has no disclosure (the reply, for link-in-reply posts)."""
+    thread = (node.get("metadata") or {}).get("thread") or []
+    if len(thread) > 1:
+        with_link = [t.get("text") or "" for t in thread if URL_RE.search(t.get("text") or "")]
+        return any(not HAS_DISCLOSURE.search(t) for t in with_link)
+    return not HAS_DISCLOSURE.search(node.get("text") or "")
+
+
+def add_disclosure(key, mutation, node):
+    """Add the disclosure where the link is: the reply for link-in-reply posts, else the post itself."""
+    svc = node.get("channelService")
+    meta = node.get("metadata") or {}
+    thread = meta.get("thread") or []
+    if len(thread) > 1:
+        parts = [{"text": (with_disclosure(t.get("text") or "", svc) if URL_RE.search(t.get("text") or "") else (t.get("text") or ""))}
+                 for t in thread]
+        inp = {"id": node["id"], "text": parts[0]["text"]}
+        if svc == "threads":
+            inp["metadata"] = {"threads": {"type": "post", "thread": parts, **({"topic": meta["topic"]} if meta.get("topic") else {})}}
+        else:
+            inp["metadata"] = {"twitter": {"thread": parts}}
+        return gql(key, mutation, {"input": inp})
+    return gql(key, mutation, {"input": {"id": node["id"], "text": with_disclosure(node.get("text") or "", svc)}})
+
+
 def edit_main_text(key, mutation, node, new_text):
     """Change the main text of a post; for X threads the first thread part changes with it."""
     inp = {"id": node["id"], "text": new_text}
@@ -224,8 +250,10 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
     if reply_link and svc in ("twitter", "threads"):
         main, link = split_link(text)
         if link:  # deal posts on X and Threads: the link goes in the first reply (link posts are shown to fewer people)
+            had = bool(HAS_DISCLOSURE.search(main))
+            main = re.sub(r"\s*(?:#ad|\[ad\])(?=\s|$)", "", main, flags=re.I).strip()  # disclosure goes with the link
             inp["text"] = main
-            reply = with_disclosure(link, svc) if HAS_DISCLOSURE.search(main) else link  # disclosure next to the link too
+            reply = with_disclosure(link, svc) if had else link
             thread = [{"text": main, "assets": assets}, {"text": reply}]
             if svc == "twitter":
                 inp["metadata"] = {"twitter": {"thread": thread}}
