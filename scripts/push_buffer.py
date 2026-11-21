@@ -215,7 +215,8 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
         main, link = split_link(text)
         if link:  # X: the link goes in the first reply (X shows link posts to fewer people)
             inp["text"] = main
-            inp["metadata"] = {"twitter": {"thread": [{"text": main, "assets": assets}, {"text": link}]}}
+            reply = with_disclosure(link, "twitter") if HAS_DISCLOSURE.search(main) else link  # #ad next to the link too
+            inp["metadata"] = {"twitter": {"thread": [{"text": main, "assets": assets}, {"text": reply}]}}
     data = gql(key, CREATE, {"input": inp})
     res = data["createPost"]
     if res.get("__typename") != "PostActionSuccess":
