@@ -140,6 +140,15 @@ def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures
 
 
 THREADS_TOPIC = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads_topic", "Gaming Threads")
+# deal-specific Threads communities, e.g. LEGO deals go to the LEGO community: [{"match": regex, "topic": name}]
+THREADS_TOPICS = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads_topics", [])
+
+
+def threads_topic_for(text):
+    for rule in THREADS_TOPICS:
+        if re.search(rule.get("match", "$^"), text or "", re.I):
+            return rule.get("topic") or THREADS_TOPIC
+    return THREADS_TOPIC
 
 
 def _service_of(channel_id):
@@ -201,7 +210,7 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
         "source": "price-notes",
     }
     if THREADS_TOPIC and _service_of(channel_id) == "threads":
-        inp["metadata"] = {"threads": {"type": "post", "topic": THREADS_TOPIC}}  # Threads topic tag
+        inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text)}}  # Threads topic tag / community
     if reply_link and _service_of(channel_id) == "twitter":
         main, link = split_link(text)
         if link:  # X: the link goes in the first reply (X shows link posts to fewer people)
