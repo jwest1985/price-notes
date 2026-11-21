@@ -25,6 +25,7 @@ API = "https://api.buffer.com"
 
 # Buffer allows 1,800 requests a day; at 96 runs a day this keeps the worst case under ~1,650
 MAX_DRAFTS_PER_RUN = 5
+STORE_DAILY_CAP = 6  # most drafts per day from one non-Amazon store, so no single store floods the feed
 # 30 posts a day per account = 30 deals a day (each deal becomes 3 drafts, 90 in total)
 DAILY_LIMIT = 30
 LOCAL = ZoneInfo("America/Toronto")
@@ -282,9 +283,34 @@ def main():
         if NOW - found > MAX_AGE:
             continue
         candidates.append(d)
-    # Amazon first (the only affiliate program for now), newest first within each group
+    # Amazon first (the only affiliate program for now), but other stores get turns too, like Wario64's feed:
+    # Amazon, other store, Amazon, other store... The other stores take turns (GOG, Steam, Walmart, PlayStation,
+    # eShop, Fangamer...), newest first, and no single non-Amazon store gets more than STORE_DAILY_CAP a day.
     candidates.sort(key=lambda d: d["found_at"], reverse=True)
-    candidates.sort(key=lambda d: 0 if d.get("store") == "Amazon" else 1)
+    by_id = {d["id"]: d for d in drafts}
+    today_local = NOW.astimezone(LOCAL).date()
+    per_store = {}
+    for did, v in sent.items():
+        if "posts" in v and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local:
+            st = (by_id.get(did) or {}).get("store", "")
+            per_store[st] = per_store.get(st, 0) + 1
+    amazon = [d for d in candidates if d.get("store") == "Amazon"]
+    queues = {}
+    for d in candidates:
+        if d.get("store") != "Amazon" and per_store.get(d.get("store", ""), 0) < STORE_DAILY_CAP:
+            queues.setdefault(d.get("store", ""), []).append(d)
+    others = []
+    while any(queues.values()):  # one from each store in turn
+        for st in list(queues):
+            if queues[st]:
+                others.append(queues[st].pop(0))
+    mixed = []
+    while amazon or others:
+        if amazon:
+            mixed.append(amazon.pop(0))
+        if others:
+            mixed.append(others.pop(0))
+    candidates = mixed
     if first_run:
         for d in drafts:
             if d not in candidates[:3]:
