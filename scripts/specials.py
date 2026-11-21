@@ -130,6 +130,8 @@ def send_now(parts, label):
         try:
             inp = {"text": texts[0], "channelId": c["id"], "schedulingType": "automatic", "mode": "addToQueue",
                    "saveToDraft": True, "assets": assets, "source": "price-notes"}
+            if "amazon.com" not in " ".join(texts) and re.search(r"https?://", " ".join(texts)) and "Turn on shortening link" in pb.TAGS:
+                inp["tagIds"] = [pb.TAGS["Turn on shortening link"]]
             if len(texts) > 1:
                 thread = [{"text": t, "assets": assets if i == 0 else []} for i, t in enumerate(texts)]
                 inp["metadata"] = {meta_key: {"thread": thread}}
@@ -147,7 +149,7 @@ def send_now(parts, label):
             for i, t in enumerate(texts):
                 try:
                     pb._create(key, c["id"], f"({i + 1}/{len(texts)}) {t}" if len(texts) > 1 else t,
-                               assets if i == 0 else [])
+                               assets if i == 0 else [], inp.get("tagIds", []))
                 except Exception as e2:
                     print("   failed:", str(e2)[:200])
                     ok = False
