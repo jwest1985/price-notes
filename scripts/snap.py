@@ -300,73 +300,6 @@ def money(text):
 
 
 
-US_ZIP = "10001"  # New York: same as you use, so we see the same US price and stock
-
-
-def amazon_set_zip(page):
-    """Set Amazon's "Deliver to" to a US ZIP once per browser session (like you do with 10001)."""
-    ctx = page.context
-    if getattr(ctx, "_zip_set", None) is not None:
-        return ctx._zip_set
-    ok = False
-    try:
-        page.goto("https://www.amazon.com/", wait_until="domcontentloaded", timeout=25000)
-        page.wait_for_timeout(1500)
-        # Amazon's own "Deliver to" request (what the ZIP box sends), made from the Amazon page itself
-        result = page.evaluate("""async (zip) => {
-          const modal = await fetch('/portal-migration/hz/glow/get-rendered-address-selections?deviceType=desktop'
-            + '&pageType=Gateway&storeContext=NoStoreName&actionSource=desktop-modal', {credentials: 'include'});
-          const html = await modal.text();
-          const m = html.match(/CSRF_TOKEN\\s*:\\s*"([^"]+)"/) || html.match(/anti-csrftoken-a2z[^"]*"\\s*(?:content|value)="([^"]+)"/);
-          if (!m) return 'no token';
-          const r = await fetch('/portal-migration/hz/glow/address-change?actionSource=glow', {method: 'POST',
-            credentials: 'include', headers: {'content-type': 'application/json', 'anti-csrftoken-a2z': m[1]},
-            body: JSON.stringify({locationType: 'LOCATION_INPUT', zipCode: zip, deviceType: 'web',
-                                  storeContext: 'generic', pageType: 'Gateway', actionSource: 'glow'})});
-          return 'status ' + r.status;
-        }""", US_ZIP)
-        print(f"   amazon: ZIP request: {result}")
-        if "200" not in str(result):  # fall back to the on-page ZIP box
-            page.click("#nav-global-location-popover-link, #glow-ingress-block", timeout=6000)
-            page.wait_for_selector("#GLUXZipUpdateInput", timeout=8000)
-            page.fill("#GLUXZipUpdateInput", US_ZIP)
-            page.keyboard.press("Enter")
-            page.wait_for_timeout(2500)
-        page.wait_for_timeout(500)
-        page.reload(wait_until="domcontentloaded", timeout=20000)
-        where = re.sub(r"\s+", " ", page.inner_text("#glow-ingress-line2", timeout=3000)).strip()
-        ok = US_ZIP in where
-        print(f"   amazon: deliver-to set to {where!r}" + ("" if ok else " (ZIP not confirmed)"))
-    except Exception as e:
-        print(f"   amazon: couldn't set the ZIP ({type(e).__name__}); using Amazon's default US location")
-    try:
-        ctx._zip_set = ok
-    except Exception:
-        pass
-    return ok
-
-
-def amazon_open(page, url):
-    """Open an Amazon product page from GitHub's US servers; one retry after a pause if Amazon blocks us.
-    Logs which way the price was checked (counted in data/amazon_checks.json for the nightly report)."""
-    amazon_set_zip(page)
-    for attempt in (1, 2):
-        try:
-            if open_page(page, url) and page.query_selector("#productTitle, #dp, #ppd"):
-                try:
-                    where = re.sub(r"\s+", " ", page.inner_text("#glow-ingress-line2", timeout=1000)).strip()
-                except Exception:
-                    where = "?"
-                print(f"   amazon: checked live on Amazon (try {attempt}, deliver to: {where})")
-                return True
-        except Exception as e:
-            print(f"   amazon: page error on try {attempt} ({type(e).__name__})")
-        if attempt == 1:
-            page.wait_for_timeout(6000)
-    print("   amazon: blocked twice, using the backups")
-    return False
-
-
 def count_amazon_check(how):
     """how: live / backup / unconfirmed. Daily counts, so we can see how often Amazon blocks us."""
     import json as _json
@@ -383,27 +316,6 @@ def count_amazon_check(how):
     _json.dump(data, open(path, "w"), indent=1, sort_keys=True)
 
 
-def amazon_live(page):
-    """(in_stock, price) from an open Amazon product page; price None if it can't be read."""
-    try:
-        avail = page.inner_text("#availability", timeout=1500)
-    except Exception:
-        avail = ""
-    in_stock = not re.search(r"currently unavailable|out of stock", avail, re.I)
-    price = None
-    for sel in ["#corePrice_feature_div .a-offscreen", "#corePriceDisplay_desktop_feature_div .priceToPay .a-offscreen",
-                "#corePriceDisplay_desktop_feature_div .a-offscreen", "#apex_desktop .a-offscreen", "#priceblock_ourprice"]:
-        try:
-            el = page.query_selector(sel)
-            if el:
-                price = money(el.text_content())
-                if price:
-                    break
-        except Exception:
-            pass
-    return in_stock, price
-
-
 def collect_price(x):
     try:
         return float(str(x).replace(",", ""))
@@ -418,30 +330,11 @@ def fix_price(d, new_txt, why):
     d["price"] = new_txt
 
 
-def amazon_name(page):
-    """The product's name as Amazon shows it, plus the format for movies/TV when the title doesn't say it."""
-    try:
-        title = re.sub(r"\s+", " ", page.inner_text("#productTitle", timeout=1500)).strip()
-    except Exception:
-        return ""
-    if not re.search(r"blu-?ray|4k|uhd|dvd", title, re.I):
-        fmt = ""
-        for sel in ["#productSubtitle", "#tmmSwatches .a-button-selected", "#bylineInfo", "#binding"]:
-            try:
-                m = re.search(r"4K(?: UHD)?|Blu-?ray|DVD", page.inner_text(sel, timeout=800), re.I)
-            except Exception:
-                m = None
-            if m:
-                fmt = m.group(0)
-                break
-        if fmt:
-            title += f" [{fmt}]"
-    return title
-
-
 def amazon_picture(page, d, path):
-    if not amazon_open(page, d["url"]):
-        # Amazon blocked us: fall back to camelcamelcamel's tracked Amazon price (scanned within a day)
+    """Amazon pages are never opened (Amazon doesn't allow automated access). The price is confirmed by any one of
+    camelcamelcamel (scanned within a day), an active Slickdeals deal, or Wario64/CheapAssGamer (last 24 hours);
+    you confirm it again yourself when you make the link."""
+    if True:  # backups only
         try:
             import verify_scheduled as vs
             state, live, detail = vs.amazon_backup(d)
@@ -462,87 +355,6 @@ def amazon_picture(page, d, path):
         count_amazon_check("backup" if state in ("live", "out_of_stock") else "unconfirmed")
         print(f"   amazon backup: {state} {detail}")
         return "no picture (Amazon deal: no Amazon images, by rule)"
-    count_amazon_check("live")
-    # the product's real name from Amazon (feeds sometimes give only part of it, e.g. "KNIGHT RIDER")
-    full = amazon_name(page)
-    old = d.get("item") or ""
-    if full and old and len(old.split()) < 4 or (full and old and old.isupper()):
-        import collect
-        new = collect.clean_item(collect.shorten_title(full), "Amazon")
-        if new and new.lower() != old.lower():
-            for k, t in d["posts"].items():
-                d["posts"][k] = t.replace(old, new, 1)
-            d["item"] = new
-    # availability and current price, to keep the post accurate
-    in_stock, price = amazon_live(page)
-    if not in_stock:
-        d["skip"] = "unavailable on Amazon"
-        d["watch_restock"] = True  # the re-check step watches it and drafts a restock post if it comes back
-    if price and d.get("price"):
-        try:
-            old = float(str(d["price"]).replace(",", ""))
-        except ValueError:
-            old = None
-        if old is not None and price > old * 1.15 + 0.5:
-            # much higher than the deal price: deal is over (or needs a coupon) - don't post it
-            d["skip"] = f"deal looks expired: Amazon now shows ${price:.2f} (deal said ${d['price']})"
-        elif old is not None and abs(old - price) > 0.005:
-            fix_price(d, f"{price:.2f}", "Amazon's current price")
-    if not AMAZON_PHOTOS:
-        return "no picture (Amazon deal: no Amazon images, by rule)"
-    # main product photo (high-res), never the page itself
-    try:
-        crumbs = page.inner_text("#wayfinding-breadcrumbs_feature_div", timeout=1500)
-    except Exception:
-        crumbs = ""
-    boxed = amazon_is_boxed(crumbs) or boxed_item(d)
-    el = page.query_selector("#landingImage") or page.query_selector("#imgBlkFront") or page.query_selector("#main-image")
-    src = ""
-    if el:
-        src = el.get_attribute("data-old-hires") or ""
-        if not src:
-            try:
-                dyn = json.loads(el.get_attribute("data-a-dynamic-image") or "{}")
-                src = max(dyn, key=lambda u: dyn[u][0] * dyn[u][1]) if dyn else ""
-            except Exception:
-                src = ""
-        src = src or el.get_attribute("src") or ""
-    if not src.startswith("http"):
-        return "needs picture (no Amazon product photo found)"
-    if boxed:
-        try:
-            r = page.request.get(src, timeout=15000)
-            if r.ok and save_photo(r.body(), path, 0.0):
-                return "box art (cropped)"
-        except Exception as e:
-            print("amazon photo failed:", str(e)[:120])
-        return "needs picture (Amazon photo too small)"
-    # products: use the main photo if its shape suits a post, else a better gallery view (side/angled)
-    main_data = None
-    for i, u in enumerate([src] + [g for g in amazon_gallery(page) if g != src][:6]):
-        try:
-            r = page.request.get(u, timeout=15000)
-            if not r.ok:
-                continue
-            data = r.body()
-            white, aspect = view_quality(data)
-            if i == 0:
-                main_data = data
-            shape_ok = GOOD_SHAPE[0] <= aspect <= GOOD_SHAPE[1]
-            # Amazon's main photo whenever its shape works; other views only if they're plain product shots on white
-            if shape_ok and (i == 0 or white >= 0.9):
-                save_photo(data, path, 0.04, pad=True)
-                return "product photo on white" if i == 0 else f"product photo on white (alternate view {i})"
-        except Exception as e:
-            print("amazon photo failed:", str(e)[:120])
-    try:
-        if main_data and save_photo(main_data, path, 0.04, pad=True):
-            return "product photo on white (padded to fit)"
-    except Exception as e:
-        print("amazon photo failed:", str(e)[:120])
-    return "needs picture (Amazon photo too small)"
-
-
 
 def clean_for_shot(page):
     """No hover pop-ups, chat bubbles or sticky bars in the picture."""

@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -182,19 +183,30 @@ def unwrap(url):
     return url
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):
+        return None
+
+
 def resolve(url, timeout=15):
-    """Follow redirects to the final store URL (best effort)."""
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA}, method="HEAD")
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.geturl()
-    except Exception:
+    """Follow redirects to the final store URL (best effort). Stops at an Amazon link without requesting it:
+    Amazon pages are never fetched."""
+    opener = urllib.request.build_opener(_NoRedirect)
+    for _ in range(8):
+        if is_amazon(urllib.parse.urlparse(url).netloc.lower()):
+            return url
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            req = urllib.request.Request(url, headers={"User-Agent": UA}, method="HEAD")
+            with opener.open(req, timeout=timeout) as resp:
                 return resp.geturl()
+        except urllib.error.HTTPError as e:
+            loc = e.headers.get("Location") if e.code in (301, 302, 303, 307, 308) else None
+            if not loc:
+                return url
+            url = urllib.parse.urljoin(url, loc)
         except Exception:
             return url
+    return url
 
 
 def is_amazon(host):

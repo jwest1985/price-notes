@@ -109,7 +109,7 @@ def main():
                 print(f"auto-schedule: waiting  {name}: {why}")
                 continue
             state, live, detail = vs.check_deal(d, browser.get)
-            v = vs.verdict(state, live, vs.posted_price(d, posts[0].get("text") or ""), detail)
+            v = vs.verdict(state, live, vs.posted_price(d, posts[0].get("text") or ""), detail, d.get("store", ""))
             if v and v[0] == "UPDATE":
                 new, old = v[1], vs.posted_price(d, posts[0].get("text") or "")
                 for p in posts:

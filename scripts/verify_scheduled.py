@@ -260,20 +260,11 @@ def check_page(d, page):
     """Amazon and other stores' product pages, in the real browser."""
     import snap
     if "amazon." in d["url"]:
-        if not snap.amazon_open(page, d["url"]):
-            r = amazon_backup(d)  # Amazon blocked us: camelcamelcamel, Slickdeals or Wario64/CheapAssGamer
-            snap.count_amazon_check("backup" if r[0] in ("live", "out_of_stock") else "unconfirmed")
-            return r
-        in_stock, price = snap.amazon_live(page)
-        if not price and in_stock:
-            r = amazon_backup(d)
-            snap.count_amazon_check("backup" if r[0] in ("live", "out_of_stock") else "unconfirmed")
-            return r
-        snap.count_amazon_check("live")
-        if not in_stock:
-            return "out_of_stock", None, ""
-        return ("live", price, "") if price else ("unknown", None, "Amazon showed no price")
-    elif not snap.open_page(page, d["url"]):
+        # never opens Amazon pages (Amazon doesn't allow automated access): backups only
+        r = amazon_backup(d)
+        snap.count_amazon_check("backup" if r[0] in ("live", "out_of_stock") else "unconfirmed")
+        return r
+    if not snap.open_page(page, d["url"]):
         return "unknown", None, "the store blocked the check"
     # most stores publish price and stock in the page's product data (schema.org)
     offers = page.evaluate("""() => {
@@ -333,8 +324,10 @@ def posted_price(d, text):
     return num(m.group(1)) if m else None
 
 
-def verdict(state, live, claimed, detail):
+def verdict(state, live, claimed, detail, store=""):
     """None if fine to post, else (tag, reason)."""
+    if state == "unknown" and (store or "").lower() == "amazon":
+        return None  # backups too old/quiet: you checked the price yourself when you made the Amazon link
     if state == "out_of_stock":
         return "Out of stock", "out of stock at the store right now"
     if state == "ended":
@@ -443,7 +436,7 @@ def main():
                 continue
             node = scheduled[pids[0]]
             state, live, detail = check_deal(d, page_getter)
-            v = verdict(state, live, posted_price(d, node.get("text", "")), detail)
+            v = verdict(state, live, posted_price(d, node.get("text", "")), detail, d.get("store", ""))
             name = d.get("item") or d["posts"]["x"][:60]
             if not v:
                 print(f"verify: OK  {name} ({d.get('store')})" + (f" ${live:.2f}" if live else ""))
