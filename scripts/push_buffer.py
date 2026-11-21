@@ -113,28 +113,28 @@ def with_disclosure(text, service):
     return text.rstrip() + " " + DISCLOSURE.get(service, "#ad")
 
 
-def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures=None, alts=None):
+def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures=None, alts=None, reply_link=False):
     # Amazon links go into drafts without a tracking ID (your amzn.to link carries it)
     text = re.sub(r"(https://www\.amazon\.com/[^\s?]+)\?tag=[^\s&]+(?:&(\S*))?", lambda m: m.group(1) + ("?" + m.group(2) if m.group(2) else ""), text)
     if pictures and len(pictures) > 1:  # sale pages: up to 4 pictures, each with its own alt text
         many = [{"image": {"url": u, "metadata": {"altText": (alts[i] if alts and i < len(alts) else alt)[:1000]}}}
                 for i, u in enumerate(pictures[:4])]
         try:
-            return _create(key, channel_id, text, many, tag_ids)
+            return _create(key, channel_id, text, many, tag_ids, reply_link)
         except RuntimeError as e:
             print("multiple pictures refused, sending the first only:", str(e)[:150])
     assets = [{"image": {"url": picture}}] if picture else []
     if assets and alt:
         try:
-            return _create(key, channel_id, text, [{"image": {"url": picture, "metadata": {"altText": alt[:1000]}}}], tag_ids)
+            return _create(key, channel_id, text, [{"image": {"url": picture, "metadata": {"altText": alt[:1000]}}}], tag_ids, reply_link)
         except RuntimeError as e:
             print("alt text refused, sending without it:", str(e)[:150])
     try:
-        res = _create(key, channel_id, text, assets, tag_ids)
+        res = _create(key, channel_id, text, assets, tag_ids, reply_link)
     except RuntimeError:
         if not assets:
             raise
-        res = _create(key, channel_id, text, [], tag_ids)  # picture rejected: send the text anyway
+        res = _create(key, channel_id, text, [], tag_ids, reply_link)  # picture rejected: send the text anyway
         res["_no_picture"] = True
     return res
 
@@ -149,7 +149,47 @@ def _service_of(channel_id):
     return ""
 
 
-def _create(key, channel_id, text, assets, tag_ids=()):
+POST_FIELDS = "id text dueAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } }"
+BASIC_FIELDS = "id text dueAt status channelService tags { id name }"
+
+
+def gql_posts(key, query, variables):
+    """Posts query with X thread parts; if Buffer ever rejects those fields, the same query without them."""
+    try:
+        return gql(key, query, variables)
+    except Exception as e:
+        print("posts query with thread parts failed, retrying without:", str(e)[:150])
+        return gql(key, query.replace(POST_FIELDS, BASIC_FIELDS), variables)
+URL_RE = re.compile(r"https?://\S+")
+
+
+def full_text(node):
+    """The post's text plus any thread parts (X posts with the link in the first reply)."""
+    parts = [node.get("text") or ""]
+    for t in ((node.get("metadata") or {}).get("thread") or [])[1:]:
+        parts.append(t.get("text") or "")
+    return "\n".join(parts)
+
+
+def edit_main_text(key, mutation, node, new_text):
+    """Change the main text of a post; for X threads the first thread part changes with it."""
+    inp = {"id": node["id"], "text": new_text}
+    thread = (node.get("metadata") or {}).get("thread") or []
+    if len(thread) > 1:
+        inp["metadata"] = {"twitter": {"thread": [{"text": new_text}] + [{"text": t.get("text") or ""} for t in thread[1:]]}}
+    return gql(key, mutation, {"input": inp})
+
+
+def split_link(text):
+    """Main post without the link (disclosure kept), and the link on its own for the first reply."""
+    m = URL_RE.search(text or "")
+    if not m:
+        return text, ""
+    main = re.sub(r"\s{2,}", " ", (text[:m.start()] + text[m.end():])).strip()
+    return main, m.group(0)
+
+
+def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
     inp = {
         "text": text,
         "channelId": channel_id,
@@ -162,6 +202,11 @@ def _create(key, channel_id, text, assets, tag_ids=()):
     }
     if THREADS_TOPIC and _service_of(channel_id) == "threads":
         inp["metadata"] = {"threads": {"type": "post", "topic": THREADS_TOPIC}}  # Threads topic tag
+    if reply_link and _service_of(channel_id) == "twitter":
+        main, link = split_link(text)
+        if link:  # X: the link goes in the first reply (X shows link posts to fewer people)
+            inp["text"] = main
+            inp["metadata"] = {"twitter": {"thread": [{"text": main, "assets": assets}, {"text": link}]}}
     data = gql(key, CREATE, {"input": inp})
     res = data["createPost"]
     if res.get("__typename") != "PostActionSuccess":
@@ -172,6 +217,7 @@ def _create(key, channel_id, text, assets, tag_ids=()):
 TAGS = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("buffer_tags", {})
 ATTENTION_PATH = os.path.join(DATA, "attention.json")
 HELD_PATH = os.path.join(DATA, "held_deals.json")
+TRIAL_PATH = os.path.join(DATA, "x_link_reply_trial.json")
 
 
 def mark_held(deal_id):
@@ -356,15 +402,22 @@ def main():
         status["errors"].append(f"daily pace reached ({sent_today}/{DAILY_LIMIT}); {len(candidates)} waiting")
 
     attention = []
+    cfg_all = load(os.path.join(ROOT, "config.json"), {}) or {}
+    trial = load(TRIAL_PATH, {})
     for d in candidates[:min(MAX_DRAFTS_PER_RUN, room)]:
         posted = {}
+        x_reply_left = int(cfg_all.get("x_link_in_reply_trial", 0)) - trial.get("used", 0)
         for c in channels:
             text = d["posts"].get(SERVICE_TEXT[c["service"]]) or d["posts"].get("x")
             if needs_disclosure(text, d.get("store")):
                 text = with_disclosure(text, c["service"])
+            reply_link = c["service"] == "twitter" and d.get("kind") == "deal" and x_reply_left > 0
             try:
                 r = create_draft(key, c["id"], text, d.get("picture") or "", d.get("alt") or "",
-                                 [TAGS[n] for n in draft_tags(d)], d.get("pictures"), d.get("alts"))
+                                 [TAGS[n] for n in draft_tags(d)], d.get("pictures"), d.get("alts"), reply_link)
+                if reply_link:
+                    trial["used"] = trial.get("used", 0) + 1
+                    save(TRIAL_PATH, trial)
                 posted[c["service"]] = r["id"]
                 if r.get("_no_picture"):
                     status["errors"].append(f"{d['id']} {c['service']}: Buffer refused the picture, sent text only")

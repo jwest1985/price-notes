@@ -1,6 +1,7 @@
 {
   "auto_schedule": true,
   "threads_topic": "Gaming Threads",
+  "x_link_in_reply_trial": 2,
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,

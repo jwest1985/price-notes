@@ -28,14 +28,14 @@ OFFSET = {"twitter": 0, "threads": 5, "bluesky": 10}
 CHANNEL_KEY = {"twitter": "x", "threads": "threads", "bluesky": "bluesky"}
 WORK_TAGS = {"Swap Amazon link", "Turn on shortening link"}   # reminders only, not holds
 
-DRAFTS_Q = """query($input: PostsInput!, $after: String) { posts(first: 100, after: $after, input: $input) {
-  edges { node { id text dueAt status channelService tags { id name } } } pageInfo { hasNextPage endCursor } } }"""
+DRAFTS_Q = ("query($input: PostsInput!, $after: String) { posts(first: 100, after: $after, input: $input) { edges { node { "
+            + pb.POST_FIELDS + " } } pageInfo { hasNextPage endCursor } } }")
 
 
 def all_posts(key, status):
     out, after = [], None
     while True:
-        data = pb.gql(key, DRAFTS_Q, {"input": {"organizationId": vs.ORG, "filter": {"status": status}}, "after": after})["posts"]
+        data = pb.gql_posts(key, DRAFTS_Q, {"input": {"organizationId": vs.ORG, "filter": {"status": status}}, "after": after})["posts"]
         out += [e["node"] for e in data["edges"]]
         if not data["pageInfo"]["hasNextPage"]:
             return out
@@ -44,7 +44,7 @@ def all_posts(key, status):
 
 def finished(d, posts):
     for p in posts:
-        text = p.get("text") or ""
+        text = pb.full_text(p)
         if any(t["name"] not in WORK_TAGS for t in p.get("tags") or []):
             return False, "has a hold tag"
         if d.get("store") == "Amazon":
@@ -117,7 +117,7 @@ def main():
                     fixed = vs.re.sub(r"\$([\d,]+(?:\.\d+)?)",
                                       lambda m: f"${new:.2f}" if abs(vs.num(m.group(1)) - old) < 0.009 else m.group(0), text, count=1)
                     if fixed != text:
-                        pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "text": fixed}})
+                        pb.edit_main_text(key, vs.EDIT, p, fixed)
                 d["price"] = f"{new:.2f}"
                 print(f"auto-schedule: price fixed {name}: now ${new:.2f}")
                 v = None
@@ -133,8 +133,8 @@ def main():
                 continue
             for p in posts:  # the ad disclosure on every affiliate post
                 text = p.get("text") or ""
-                if pb.needs_disclosure(text, d.get("store")) and not pb.HAS_DISCLOSURE.search(text):
-                    pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "text": pb.with_disclosure(text, p["channelService"])}})
+                if pb.needs_disclosure(pb.full_text(p), d.get("store")) and not pb.HAS_DISCLOSURE.search(text):
+                    pb.edit_main_text(key, vs.EDIT, p, pb.with_disclosure(text, p["channelService"]))
             slot = next(slots, None)
             if slot is None:
                 print("auto-schedule: no free slot in the next hours; the rest waits for the next run")

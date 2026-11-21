@@ -26,8 +26,8 @@ LOCAL = ZoneInfo("America/Toronto")
 ORG = "6aff0fe7278b8418e606868b"
 TAGS = pb.TAGS
 
-POSTS_Q = """query($input: PostsInput!) { posts(first: 100, input: $input) {
-  edges { node { id text dueAt status channelService tags { id name } } } } }"""
+POSTS_Q = ("query($input: PostsInput!) { posts(first: 100, input: $input) { edges { node { "
+           + pb.POST_FIELDS + " } } } }")
 EDIT = """mutation($input: EditPostInput!) { editPost(input: $input) {
   __typename ... on PostActionSuccess { post { id status } } ... on MutationError { message } } }"""
 
@@ -350,7 +350,7 @@ def main():
     if not key:
         print("verify: no BUFFER_API_KEY")
         return
-    data = pb.gql(key, POSTS_Q, {"input": {"organizationId": ORG, "filter": {"status": ["scheduled"]}}})
+    data = pb.gql_posts(key, POSTS_Q, {"input": {"organizationId": ORG, "filter": {"status": ["scheduled"]}}})
     scheduled = {e["node"]["id"]: e["node"] for e in data["posts"]["edges"]}
     sent = pb.load(pb.SENT_PATH, {})
     drafts = {d["id"]: d for d in pb.load(pb.DRAFTS_PATH, [])}
@@ -392,10 +392,10 @@ def main():
         when = collect.parse_date(node.get("dueAt"))
         text = node.get("text") or ""
         store = (drafts.get(post_to_deal.get(pid)) or {}).get("store", "")
-        if pb.needs_disclosure(text, store) and when and when <= NOW + timedelta(hours=12) and not pb.HAS_DISCLOSURE.search(text):
+        if pb.needs_disclosure(pb.full_text(node), store) and when and when <= NOW + timedelta(hours=12) and not pb.HAS_DISCLOSURE.search(text):
             fixed = pb.with_disclosure(text, node.get("channelService"))
             try:
-                pb.gql(key, EDIT, {"input": {"id": pid, "text": fixed}})
+                pb.edit_main_text(key, EDIT, node, fixed)
                 node["text"] = fixed
                 print("verify: added the missing ad disclosure to", pid)
             except Exception as e:
@@ -408,7 +408,7 @@ def main():
     # an Amazon post must never go out without your amzn.to link (the long link has no tracking ID)
     for pid, node in scheduled.items():
         when = collect.parse_date(node.get("dueAt"))
-        text = node.get("text") or ""
+        text = pb.full_text(node)
         if when and when <= NOW + WINDOW and re.search(r"https?://(?:www\.)?amazon\.com/", text) and "amzn.to/" not in text:
             tag_ids = list(dict.fromkeys([t["id"] for t in node.get("tags") or []] + [TAGS["Swap Amazon link"]]))
             try:
@@ -455,7 +455,7 @@ def main():
                     fixed = re.sub(r"\$([\d,]+(?:\.\d+)?)", swap, text, count=1)
                     if fixed != text:
                         try:
-                            pb.gql(key, EDIT, {"input": {"id": pid, "text": fixed}})
+                            pb.edit_main_text(key, EDIT, scheduled[pid], fixed)
                         except Exception as e:
                             print("   couldn't update", pid, str(e)[:150])
                 d["price"] = f"{new:.2f}"
