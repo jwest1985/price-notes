@@ -26,6 +26,9 @@ API = "https://api.buffer.com"
 # Buffer allows 1,800 requests a day; at 96 runs a day this keeps the worst case under ~1,650
 MAX_DRAFTS_PER_RUN = 5
 STORE_DAILY_CAP = 6  # most drafts per day from one non-Amazon store, so no single store floods the feed
+NEWS_DAILY_CAP = 6  # gaming news posts per day (they share the day's 30 with the deals)
+NEWS_PER_SOURCE_CAP = 3
+NEWS_SOURCES = {"PlayStation Blog", "Xbox Wire", "Gematsu"}
 # 30 posts a day per account = 30 deals a day (each deal becomes 3 drafts, 90 in total)
 DAILY_LIMIT = 30
 LOCAL = ZoneInfo("America/Toronto")
@@ -243,7 +246,7 @@ def draft_tags(d):
     names = list(d.get("flags") or [])
     if d.get("store") == "Amazon":
         names.append("Swap Amazon link")
-    elif d.get("kind") == "deal" and re.search(r"https?://", " ".join((d.get("posts") or {}).values())):
+    elif d.get("kind") in ("deal", "news") and re.search(r"https?://", " ".join((d.get("posts") or {}).values())):
         names.append("Turn on shortening link")  # Buffer's link shortener: never on Amazon links
     if str(d.get("picture_type", "")).startswith("needs picture") and d.get("store") != "Amazon":
         names.append("Needs picture")  # never on Amazon posts: they don't get pictures
@@ -372,11 +375,16 @@ def main():
         if "posts" in v and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local:
             st = (by_id.get(did) or {}).get("store", "")
             per_store[st] = per_store.get(st, 0) + 1
+    news_today = sum(n for st, n in per_store.items() if st in NEWS_SOURCES)
     amazon = [d for d in candidates if d.get("store") == "Amazon"]
     queues = {}
     for d in candidates:
-        if d.get("store") != "Amazon" and per_store.get(d.get("store", ""), 0) < STORE_DAILY_CAP:
-            queues.setdefault(d.get("store", ""), []).append(d)
+        if d.get("kind") == "news":
+            if news_today >= NEWS_DAILY_CAP or per_store.get(d.get("store", ""), 0) >= NEWS_PER_SOURCE_CAP:
+                continue
+        elif d.get("store") == "Amazon" or per_store.get(d.get("store", ""), 0) >= STORE_DAILY_CAP:
+            continue
+        queues.setdefault(d.get("store", ""), []).append(d)
     others = []
     while any(queues.values()):  # one from each store in turn
         for st in list(queues):

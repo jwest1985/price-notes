@@ -1087,10 +1087,21 @@ def main():
                 if not keyword_hit(it["title"], cfg.get("news_keywords", []) + cfg.get("themed_promo_keywords", [])):
                     seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
                     continue
-                # news is rare and judgement-based: list it for review instead of drafting it
-                new_tips.append({"id": iid, "source": feed["name"], "kind": "news", "text": it["title"], "link": it["link"], "found_at": found})
+                # gaming news from official/news sources: the headline and the link, mixed in with the deals
+                title = re.sub(r"\s+", " ", html.unescape(it["title"] or "")).strip()
+                title = re.sub(r"\s+[-|\u2013\u2014]\s+(?:PlayStation\.Blog|Xbox Wire|Gematsu)$", "", title, flags=re.I)
+                link, _ = clean_link(it["link"], "")
+                if not title or not link:
+                    seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
+                    continue
                 seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
+                new_drafts.append({"id": iid, "base": iid, "kind": "news", "source": feed["name"], "store": feed["name"],
+                                   "found_at": found, "source_link": it["link"], "url": link, "link_type": "article",
+                                   "image": "", "multi": False, "code": "", "posts": make_posts(title, link, False, cfg),
+                                   "item": title, "price": "", "verify": {}, "status": "new"})
                 info["new"] += 1
+                if info["new"] >= feed.get("max_per_run", 2):
+                    break
                 continue
             else:
                 hay = f"{it['title']} {it['summary'][:300]}"

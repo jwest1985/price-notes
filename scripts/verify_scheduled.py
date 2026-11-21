@@ -432,8 +432,8 @@ def main():
     try:
         for did, pids in due.items():
             d = drafts.get(did)
-            if not d:
-                continue
+            if not d or d.get("kind") != "deal":
+                continue  # news posts have no price to check
             node = scheduled[pids[0]]
             state, live, detail = check_deal(d, page_getter)
             v = verdict(state, live, posted_price(d, node.get("text", "")), detail, d.get("store", ""))
