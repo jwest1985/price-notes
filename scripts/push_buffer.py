@@ -94,6 +94,16 @@ DISCLOSURE = {"twitter": "#ad", "bluesky": "#ad", "threads": "[ad]", "x": "#ad"}
 HAS_DISCLOSURE = re.compile(r"(?:^|\s)(?:#ad|\[ad\])(?=\s|$|[.,!?)])", re.I)
 
 
+AFFILIATE_STORES = {x.lower() for x in ((load(os.path.join(ROOT, "config.json"), {}) or {}).get("affiliate_stores") or ["Amazon"])}
+AFFILIATE_LINK = re.compile(r"https?://(?:www\.)?(?:amazon\.com|amzn\.to|link\.amazon|a\.co)/", re.I)
+
+
+def needs_disclosure(text="", store=""):
+    """Only posts that can earn you money: an affiliate store (Amazon for now, see config "affiliate_stores")
+    or an Amazon link in the text."""
+    return (store or "").lower() in AFFILIATE_STORES or bool(AFFILIATE_LINK.search(text or ""))
+
+
 def with_disclosure(text, service):
     """Every deal post carries the ad disclosure: #ad on X and Bluesky, [ad] on Threads. Never removed, never doubled."""
     text = text or ""
@@ -270,7 +280,7 @@ def main():
         posted = {}
         for c in channels:
             text = d["posts"].get(SERVICE_TEXT[c["service"]]) or d["posts"].get("x")
-            if d.get("kind") == "deal":
+            if needs_disclosure(text, d.get("store")):
                 text = with_disclosure(text, c["service"])
             try:
                 r = create_draft(key, c["id"], text, d.get("picture") or "", d.get("alt") or "",

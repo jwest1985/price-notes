@@ -128,9 +128,9 @@ def main():
                     ids = list(dict.fromkeys([t["id"] for t in p.get("tags") or []] + [vs.TAGS[tag]]))
                     pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "tagIds": ids}})
                 continue
-            for p in posts:  # the ad disclosure, always
+            for p in posts:  # the ad disclosure on every affiliate post
                 text = p.get("text") or ""
-                if not pb.HAS_DISCLOSURE.search(text):
+                if pb.needs_disclosure(text, d.get("store")) and not pb.HAS_DISCLOSURE.search(text):
                     pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "text": pb.with_disclosure(text, p["channelService"])}})
             slot = next(slots, None)
             if slot is None:

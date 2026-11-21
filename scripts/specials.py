@@ -125,7 +125,8 @@ def send_now(parts, label):
         svc = pb.SERVICE_TEXT[c["service"]]
         meta_key = {"x": "twitter", "threads": "threads", "bluesky": "bluesky"}[svc]
         texts = [p[svc] for p in parts]
-        texts = [pb.with_disclosure(texts[0], c["service"])] + texts[1:]  # the disclosure is on the first post
+        if pb.needs_disclosure(" ".join(texts)):  # affiliate links only: the disclosure goes on the first post
+            texts = [pb.with_disclosure(texts[0], c["service"])] + texts[1:]
         pic = parts[0].get("picture")
         assets = [{"image": {"url": pic, "metadata": {"altText": parts[0].get("alt", "")[:1000]}}}] if pic else []
         try:
