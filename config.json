@@ -1,7 +1,7 @@
 {
   "auto_schedule": true,
   "threads_topic": "Gaming Threads",
-  "threads_topics": [{"match": "\\blego\\b", "topic": "LEGO Threads"}],
+  "threads_topics": [{"match": "\\blego\\b", "topic": "LEGO Threads"}, {"match": "complete series|\\bseason\\s*\\d|\\bseasons\\b|\\btv series\\b|\\bminiseries\\b|\\bthe complete (?:first|second|third|fourth|fifth|\\w+) season", "topic": "TV Threads"}, {"match": "smart tv|roku tv|google tv|fire tv|\\bqled\\b|mini ?led|oled tv|\\b\\d{2,3}(?:\\\"|\u201d|-inch| inch)[^,]*\\btv\\b|television", "topic": "Tech Threads"}, {"match": "blu-?ray|\\b4k uhd\\b|4k ultra hd|\\bdvd\\b|steelbook|criterion|movie collection|film collection|\\bdigital hd\\b", "topic": "Film Threads"}, {"match": "gaming|\\bgame\\b|\\bgames\\b|ps5|ps4|playstation|xbox|nintendo|switch|steam|controller|joy-con|amiibo|gamepad|8bitdo|razer|steelseries|hyperx|turtle beach|corsair|logitech g|rog ally|legion go|meta quest|psvr", "topic": "Gaming Threads"}, {"match": "\\b(?:tv|television|oled tv|qled|mini ?led|monitor|laptop|chromebook|macbook|ipad|tablet|ssd|nvme|hard drive|router|wi-?fi|mesh|earbuds|headphones|airpods|speaker|soundbar|smartwatch|apple watch|charger|power bank|usb-?c|smart home|echo|kindle|camera|webcam|keyboard|mouse|printer|projector)\\b", "topic": "Tech Threads"}],
   "x_link_in_reply_trial": 2,
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
