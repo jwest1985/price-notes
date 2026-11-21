@@ -50,8 +50,8 @@ def finished(d, posts):
         if d.get("store") == "Amazon":
             if "amazon.com/" in text or not ("link.amazon/" in text or "amzn.to/" in text):
                 return False, "Amazon link not swapped yet"
-        elif "http" in text and "buff.ly/" not in text:
-            return False, "link shortening not on yet"
+        elif d.get("kind") == "deal" and "http" in text and "buff.ly/" not in text:
+            return False, "link shortening not on yet"  # news keeps its direct link to the source
     return True, ""
 
 

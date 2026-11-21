@@ -246,7 +246,7 @@ def draft_tags(d):
     names = list(d.get("flags") or [])
     if d.get("store") == "Amazon":
         names.append("Swap Amazon link")
-    elif d.get("kind") in ("deal", "news") and re.search(r"https?://", " ".join((d.get("posts") or {}).values())):
+    elif d.get("kind") == "deal" and re.search(r"https?://", " ".join((d.get("posts") or {}).values())):
         names.append("Turn on shortening link")  # Buffer's link shortener: never on Amazon links
     if str(d.get("picture_type", "")).startswith("needs picture") and d.get("store") != "Amazon":
         names.append("Needs picture")  # never on Amazon posts: they don't get pictures
