@@ -312,18 +312,27 @@ def amazon_set_zip(page):
     try:
         page.goto("https://www.amazon.com/", wait_until="domcontentloaded", timeout=25000)
         page.wait_for_timeout(1500)
-        page.click("#nav-global-location-popover-link, #glow-ingress-block", timeout=6000)
-        page.wait_for_selector("#GLUXZipUpdateInput", timeout=8000)
-        page.fill("#GLUXZipUpdateInput", US_ZIP)
-        page.click("#GLUXZipUpdate input, #GLUXZipUpdate, [aria-labelledby='GLUXZipUpdate-announce']", timeout=5000)
-        page.wait_for_timeout(2500)
-        for sel in ("#GLUXConfirmClose", ".a-popover-footer input[name='glowDoneButton']", "button[name='glowDoneButton']"):
-            try:
-                page.click(sel, timeout=1500)
-                break
-            except Exception:
-                pass
-        page.wait_for_timeout(1000)
+        # Amazon's own "Deliver to" request (what the ZIP box sends), made from the Amazon page itself
+        result = page.evaluate("""async (zip) => {
+          const modal = await fetch('/portal-migration/hz/glow/get-rendered-address-selections?deviceType=desktop'
+            + '&pageType=Gateway&storeContext=NoStoreName&actionSource=desktop-modal', {credentials: 'include'});
+          const html = await modal.text();
+          const m = html.match(/CSRF_TOKEN\\s*:\\s*"([^"]+)"/) || html.match(/anti-csrftoken-a2z[^"]*"\\s*(?:content|value)="([^"]+)"/);
+          if (!m) return 'no token';
+          const r = await fetch('/portal-migration/hz/glow/address-change?actionSource=glow', {method: 'POST',
+            credentials: 'include', headers: {'content-type': 'application/json', 'anti-csrftoken-a2z': m[1]},
+            body: JSON.stringify({locationType: 'LOCATION_INPUT', zipCode: zip, deviceType: 'web',
+                                  storeContext: 'generic', pageType: 'Gateway', actionSource: 'glow'})});
+          return 'status ' + r.status;
+        }""", US_ZIP)
+        print(f"   amazon: ZIP request: {result}")
+        if "200" not in str(result):  # fall back to the on-page ZIP box
+            page.click("#nav-global-location-popover-link, #glow-ingress-block", timeout=6000)
+            page.wait_for_selector("#GLUXZipUpdateInput", timeout=8000)
+            page.fill("#GLUXZipUpdateInput", US_ZIP)
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(2500)
+        page.wait_for_timeout(500)
         page.reload(wait_until="domcontentloaded", timeout=20000)
         where = re.sub(r"\s+", " ", page.inner_text("#glow-ingress-line2", timeout=3000)).strip()
         ok = US_ZIP in where
