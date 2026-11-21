@@ -91,6 +91,8 @@ mutation($input: CreatePostInput!) {
 
 
 def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures=None, alts=None):
+    # Amazon links go into drafts without a tracking ID (your amzn.to link carries it)
+    text = re.sub(r"(https://www\.amazon\.com/[^\s?]+)\?tag=[^\s&]+(?:&(\S*))?", lambda m: m.group(1) + ("?" + m.group(2) if m.group(2) else ""), text)
     if pictures and len(pictures) > 1:  # sale pages: up to 4 pictures, each with its own alt text
         many = [{"image": {"url": u, "metadata": {"altText": (alts[i] if alts and i < len(alts) else alt)[:1000]}}}
                 for i, u in enumerate(pictures[:4])]
