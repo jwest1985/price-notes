@@ -124,6 +124,7 @@ def main():
             if v:
                 tag, reason = v
                 print(f"auto-schedule: HOLD {name}: {tag} - {reason}")
+                pb.mark_held(did)
                 pb.note_attention([{"at": NOW.isoformat(timespec="seconds"), "deal": did, "tag": tag, "reason": reason,
                                     "item": name, "store": d.get("store", ""), "check": pb.camel_link(d)}])
                 for p in posts:

@@ -465,6 +465,7 @@ def main():
             if tag == "Out of stock":
                 watch_add(d)
             print(f"verify: HOLD {name} ({d.get('store')}): {tag} - {reason}")
+            pb.mark_held(did)
             # pull every still-scheduled post of this deal (all 3 apps) back to Drafts, tagged
             for pid in (sent.get(did, {}).get("posts") or {}).values():
                 if pid not in scheduled:

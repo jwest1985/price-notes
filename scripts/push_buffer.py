@@ -158,6 +158,15 @@ def _create(key, channel_id, text, assets, tag_ids=()):
 
 TAGS = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("buffer_tags", {})
 ATTENTION_PATH = os.path.join(DATA, "attention.json")
+HELD_PATH = os.path.join(DATA, "held_deals.json")
+
+
+def mark_held(deal_id):
+    """A deal pulled back to Drafts with a hold tag: another deal takes its place in the day's count."""
+    held = load(HELD_PATH, [])
+    if deal_id and deal_id not in held:
+        held = (held + [deal_id])[-500:]
+        save(HELD_PATH, held)
 
 
 def draft_tags(d):
@@ -320,7 +329,8 @@ def main():
     # daily limit, paced so evening deals still get room: about 4 at 6 AM, then ~1.6 more each hour
     local_now = NOW.astimezone(LOCAL)
     today = local_now.date()
-    sent_today = sum(1 for v in sent.values() if "posts" in v
+    held = set(load(HELD_PATH, []))  # held deals (price went up, out of stock...) don't use up the day's 30
+    sent_today = sum(1 for did, v in sent.items() if "posts" in v and did not in held
                      and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today)
     hours_in = max(0.0, (local_now.hour + local_now.minute / 60) - DAY_START_HOUR)
     allowed_now = min(DAILY_LIMIT, 4 + int(1.6 * hours_in + 0.999))
