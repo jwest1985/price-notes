@@ -1095,7 +1095,18 @@ def main():
                     seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
                     continue
                 seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
-                new_drafts.append({"id": iid, "base": iid, "kind": "news", "source": feed["name"], "store": feed["name"],
+                pic = ""
+                try:  # the article's own share image (the publisher's key art / screenshot), like Wario64's news posts
+                    page = fetch(link)
+                    page = page.decode("utf-8", "replace") if isinstance(page, bytes) else page
+                    og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', page) or \
+                        re.search(r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"', page)
+                    pic = html.unescape(og.group(1)) if og else ""
+                except Exception:
+                    pic = ""
+                news_extra = {"picture": pic, "alt": f"{title}, image from {feed['name']}"[:400],
+                              "picture_type": "article image"} if pic.startswith("http") else {}
+                new_drafts.append({**news_extra, "id": iid, "base": iid, "kind": "news", "source": feed["name"], "store": feed["name"],
                                    "found_at": found, "source_link": it["link"], "url": link, "link_type": "article",
                                    "image": "", "multi": False, "code": "", "posts": make_posts(title, link, False, cfg),
                                    "item": title, "price": "", "verify": {}, "status": "new"})
