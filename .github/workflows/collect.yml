@@ -11,6 +11,10 @@ on:
         description: "Only save the current state (no collecting, no drafts)"
         type: boolean
         default: false
+      timer:
+        description: "Started by the outside timer (cron-job.org): same rules as a scheduled run"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -29,6 +33,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%Y%m%d%H)" \< "2026112111" ]; then
             echo "go=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.timer }}" = "true" ] && [ "$(TZ=America/Toronto date +%H)" \< "06" ]; then
+            echo "go=false" >> "$GITHUB_OUTPUT"  # outside timer: nothing between midnight and 6 AM Toronto time
           else
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
@@ -107,6 +113,7 @@ jobs:
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
+          TIMER_RUN: ${{ inputs.timer }}
         run: python scripts/push_buffer.py
 
       - name: Re-check posts due soon

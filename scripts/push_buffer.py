@@ -242,7 +242,7 @@ def main():
     hours_in = max(0.0, (local_now.hour + local_now.minute / 60) - DAY_START_HOUR)
     allowed_now = min(DAILY_LIMIT, 4 + int(1.6 * hours_in + 0.999))
     room = max(0, allowed_now - sent_today)
-    if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+    if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch" and os.environ.get("TIMER_RUN") != "true":
         room = MAX_DRAFTS_PER_RUN  # hand-started test runs aren't held back by the daily pace
     status["sent_today"] = sent_today
     status["daily_limit"] = DAILY_LIMIT
