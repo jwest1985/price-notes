@@ -139,8 +139,18 @@ def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures
     return res
 
 
+THREADS_TOPIC = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads_topic", "Gaming Threads")
+
+
+def _service_of(channel_id):
+    for c in load(CHANNELS_PATH, []) or []:
+        if c.get("id") == channel_id:
+            return c.get("service")
+    return ""
+
+
 def _create(key, channel_id, text, assets, tag_ids=()):
-    data = gql(key, CREATE, {"input": {
+    inp = {
         "text": text,
         "channelId": channel_id,
         "schedulingType": "automatic",
@@ -149,7 +159,10 @@ def _create(key, channel_id, text, assets, tag_ids=()):
         "assets": assets,
         "tagIds": list(tag_ids),
         "source": "price-notes",
-    }})
+    }
+    if THREADS_TOPIC and _service_of(channel_id) == "threads":
+        inp["metadata"] = {"threads": {"type": "post", "topic": THREADS_TOPIC}}  # Threads topic tag
+    data = gql(key, CREATE, {"input": inp})
     res = data["createPost"]
     if res.get("__typename") != "PostActionSuccess":
         raise RuntimeError(f"{res.get('__typename')}: {res.get('message', '')}"[:300])
