@@ -181,8 +181,39 @@ def camel_link(d):
     return f"https://camelmart.com/product/{m.group(1)}" if m else ""
 
 
+SHORT = {"Swap Amazon link": "Swap Amazon link", "Turn on shortening link": "Turn on shortening",
+         "Price went up": "Price went up", "Out of stock": "Out of stock", "Deal ended": "Deal ended",
+         "Couldn't verify": "Couldn't verify", "Price dropped": "Price dropped", "Check promo code": "Check promo code",
+         "Needs picture": "Needs picture"}
+
+
+def notify_phone(entries):
+    """Push a note to your phone (ntfy app) when drafts need you. Topic is the private NTFY_TOPIC secret."""
+    topic = os.environ.get("NTFY_TOPIC", "").strip()
+    if not topic or not entries:
+        return
+    seen, lines = set(), []
+    for a in entries:
+        k = (a.get("tag"), a.get("item"))
+        if k in seen:
+            continue
+        seen.add(k)
+        price = f" ${a['price']}" if a.get("price") else ""
+        lines.append(f"{SHORT.get(a.get('tag'), a.get('tag'))}: {a.get('item', '')[:70]}{price}")
+    n = len(lines)
+    body = "\n".join(lines[:12]) + (f"\n...and {n - 12} more" if n > 12 else "")
+    title = f"{n} draft{'s' if n != 1 else ''} need{'s' if n == 1 else ''} you" if n else "Drafts need you"
+    req = urllib.request.Request(f"https://ntfy.sh/{topic}", data=body.encode("utf-8"), method="POST",
+                                 headers={"Title": title, "Click": "https://publish.buffer.com/drafts", "Tags": "bell"})
+    try:
+        urllib.request.urlopen(req, timeout=15).read()
+    except Exception as e:
+        print("phone note failed:", type(e).__name__)
+
+
 def note_attention(entries):
     """Keep a list of posts that need you, grouped by what needs doing (data/attention.json + .md)."""
+    notify_phone(entries)
     att = load(ATTENTION_PATH, [])
     att = entries + att
     cutoff = NOW - timedelta(days=3)
@@ -300,7 +331,7 @@ def main():
                        "Couldn't verify": d.get("verify_note") or "the price couldn't be confirmed at the store"}
             attention += [{"at": NOW.isoformat(timespec="seconds"), "deal": d["id"], "tag": n, "reason": reasons.get(n, n),
                            "item": d.get("item") or d["posts"]["x"][:60], "store": d.get("store", ""), "posts": posted,
-                           "check": camel_link(d)}
+                           "check": camel_link(d), "price": d.get("price")}
                           for n in draft_tags(d)]
     status["sent_today"] = sent_today + status["sent"]
 

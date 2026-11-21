@@ -114,6 +114,7 @@ jobs:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
           TIMER_RUN: ${{ inputs.timer }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python scripts/push_buffer.py
 
       - name: Re-check posts due soon
@@ -121,6 +122,7 @@ jobs:
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python scripts/verify_scheduled.py
 
       - name: Schedule finished drafts
