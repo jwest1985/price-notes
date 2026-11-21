@@ -4,7 +4,7 @@
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,
   "seen_days": 30,
-  "tag_all_deal_posts": false,
+  "tag_all_deal_posts": true,
   "x_disclosure": "#ad",
   "bluesky_disclosure": "#ad",
   "threads_disclosure": "[ad]",

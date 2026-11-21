@@ -394,6 +394,24 @@ def main():
         did = post_to_deal.get(pid)
         if did and when and NOW - timedelta(minutes=2) <= when <= NOW + WINDOW:
             due.setdefault(did, []).append(pid)
+    # no deal or free-games post goes out without the ad disclosure: add it to any post due soon that lacks it
+    ours = set(post_to_deal) | set(special)
+    for pid, node in scheduled.items():
+        when = collect.parse_date(node.get("dueAt"))
+        text = node.get("text") or ""
+        if pid in ours and when and when <= NOW + timedelta(hours=12) and not pb.HAS_DISCLOSURE.search(text):
+            fixed = pb.with_disclosure(text, node.get("channelService"))
+            try:
+                pb.gql(key, EDIT, {"input": {"id": pid, "text": fixed}})
+                node["text"] = fixed
+                print("verify: added the missing ad disclosure to", pid)
+            except Exception as e:
+                # can't add it: pull the post back to Drafts rather than let it go out without one
+                print("   couldn't add the disclosure to", pid, str(e)[:120], "- moving it to Drafts")
+                try:
+                    pb.gql(key, EDIT, {"input": {"id": pid, "saveToDraft": True}})
+                except Exception:
+                    pass
     # an Amazon post must never go out without your amzn.to link (the long link has no tracking ID)
     for pid, node in scheduled.items():
         when = collect.parse_date(node.get("dueAt"))

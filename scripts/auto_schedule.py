@@ -128,6 +128,10 @@ def main():
                     ids = list(dict.fromkeys([t["id"] for t in p.get("tags") or []] + [vs.TAGS[tag]]))
                     pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "tagIds": ids}})
                 continue
+            for p in posts:  # the ad disclosure, always
+                text = p.get("text") or ""
+                if not pb.HAS_DISCLOSURE.search(text):
+                    pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "text": pb.with_disclosure(text, p["channelService"])}})
             slot = next(slots, None)
             if slot is None:
                 print("auto-schedule: no free slot in the next hours; the rest waits for the next run")

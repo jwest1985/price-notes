@@ -90,6 +90,18 @@ mutation($input: CreatePostInput!) {
 }"""
 
 
+DISCLOSURE = {"twitter": "#ad", "bluesky": "#ad", "threads": "[ad]", "x": "#ad"}
+HAS_DISCLOSURE = re.compile(r"(?:^|\s)(?:#ad|\[ad\])(?=\s|$|[.,!?)])", re.I)
+
+
+def with_disclosure(text, service):
+    """Every deal post carries the ad disclosure: #ad on X and Bluesky, [ad] on Threads. Never removed, never doubled."""
+    text = text or ""
+    if HAS_DISCLOSURE.search(text):
+        return text
+    return text.rstrip() + " " + DISCLOSURE.get(service, "#ad")
+
+
 def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures=None, alts=None):
     # Amazon links go into drafts without a tracking ID (your amzn.to link carries it)
     text = re.sub(r"(https://www\.amazon\.com/[^\s?]+)\?tag=[^\s&]+(?:&(\S*))?", lambda m: m.group(1) + ("?" + m.group(2) if m.group(2) else ""), text)
@@ -258,6 +270,8 @@ def main():
         posted = {}
         for c in channels:
             text = d["posts"].get(SERVICE_TEXT[c["service"]]) or d["posts"].get("x")
+            if d.get("kind") == "deal":
+                text = with_disclosure(text, c["service"])
             try:
                 r = create_draft(key, c["id"], text, d.get("picture") or "", d.get("alt") or "",
                                  [TAGS[n] for n in draft_tags(d)], d.get("pictures"), d.get("alts"))
