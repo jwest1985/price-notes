@@ -628,6 +628,8 @@ def shorten_title(t, limit=90):
     if re.search(r"\b(?:4K|UHD|Blu-?ray|DVD|Steelbook)\b", t, re.I):
         # movies/TV: the season, edition and format are part of what's being sold, so keep the whole title
         return t if len(t) <= limit + 30 else t[:limit + 30].rsplit(" ", 1)[0].rstrip(",-")
+    # "SERIES | Name Vol. 2 - Platform": the part after " | " is part of the name, not marketing
+    t = re.sub(r"^([^|]{2,40}) \| ([^|]+?)(?= [-\u2013\u2014] |$)", lambda m: f"{m.group(1)}: {m.group(2)}", t)
     parts = re.split(r" [-\u2013\u2014|] |, | \((?=[^)]*(?:pack|count|edition|version|bundle)\b)", t, maxsplit=1)
     name = parts[0].strip(" -,")
     if len(name.split()) < 2 and len(parts) > 1 and not any(re.search(pat, t[len(name):], re.I) for pat, _ in PLATFORMS):
