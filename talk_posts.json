@@ -1,121 +1,466 @@
 {
   "any_day": [
-    {"type": "question", "text": "What game are you playing right now?"},
-    {"type": "this_or_that", "text": "Physical or digital: which do you buy more of these days?"},
-    {"type": "niche", "text": "JRPG fans: turn-based or real-time combat?"},
-    {"type": "nostalgia", "text": "What's a game demo disc you played way more than the actual games you owned?"},
-    {"type": "fill_in", "text": "The best video game soundtrack of all time is ____."},
-    {"type": "hypothetical", "text": "You can only play one series for the rest of your life. Which one?"},
-    {"type": "collecting", "text": "What's the highlight of your game shelf right now?"},
-    {"type": "top3", "text": "Top 3 games of all time. Go."},
-    {"type": "hot_take", "text": "Give me your most unpopular gaming opinion."},
-    {"type": "setup", "text": "What's one thing in your gaming setup you'd upgrade first?"},
-    {"type": "one_word", "text": "Describe your current game in one word."},
-    {"type": "question", "text": "What's a game you bought on sale and ended up loving?"},
-    {"type": "this_or_that", "text": "Controller or mouse and keyboard?"},
-    {"type": "niche", "text": "Fighting game players: who's your main and why?"},
-    {"type": "nostalgia", "text": "What was the first game you ever owned?"},
-    {"type": "fill_in", "text": "A game everyone should play at least once: ____."},
-    {"type": "hypothetical", "text": "One game gets a brand new sequel tomorrow. You pick it. What is it?"},
-    {"type": "collecting", "text": "Do you keep the boxes for your consoles and accessories, or toss them?"},
-    {"type": "top3", "text": "Top 3 boss fights you still think about."},
-    {"type": "hot_take", "text": "What's a game everyone loves that just didn't click for you?"},
-    {"type": "setup", "text": "Headphones or speakers when you play?"},
-    {"type": "one_word", "text": "Sum up your backlog in one word."},
-    {"type": "question", "text": "What's the last game you finished?"},
-    {"type": "this_or_that", "text": "Handheld or TV: where do you play the most?"},
-    {"type": "niche", "text": "Metroidvania fans: what's the best one you've played?"},
-    {"type": "nostalgia", "text": "Memory card horror stories. Who lost a save they never got over?"},
-    {"type": "fill_in", "text": "The most underrated console ever made is ____."},
-    {"type": "hypothetical", "text": "You can live in any video game world for a week. Where are you going?"},
-    {"type": "collecting", "text": "Amiibo, figures, plushies or none of the above? What do you collect?"},
-    {"type": "top3", "text": "Top 3 video game villains."},
-    {"type": "hot_take", "text": "Remakes or remasters: which do you actually want more of?"},
-    {"type": "setup", "text": "What controller do you use the most right now?"},
-    {"type": "one_word", "text": "One word for the last game you played."},
-    {"type": "question", "text": "What game is sitting in your backlog that you keep meaning to start?"},
-    {"type": "this_or_that", "text": "Easy mode with the story, or hard mode with the struggle?"},
-    {"type": "niche", "text": "Racing game fans: arcade style or full sim?"},
-    {"type": "nostalgia", "text": "What's a game you played at a friend's house as a kid and never forgot?"},
-    {"type": "fill_in", "text": "The best co-op game to play with a friend is ____."},
-    {"type": "hypothetical", "text": "You get to remake any game from scratch. Which one, and what do you change?"},
-    {"type": "collecting", "text": "Steelbooks: worth it or not?"},
-    {"type": "top3", "text": "Top 3 games you'd recommend to someone who's never played a video game."},
-    {"type": "hot_take", "text": "Is a game ever worth full price on day one anymore? Which ones?"},
-    {"type": "setup", "text": "Show of hands: who still has an old console hooked up next to the new one? Which one?"},
-    {"type": "one_word", "text": "Your favourite game genre. One word."},
-    {"type": "question", "text": "What's the most hours you've put into a single game?"},
-    {"type": "this_or_that", "text": "Open world or linear?"},
-    {"type": "niche", "text": "Roguelike fans: what's the run-based game that finally hooked you?"},
-    {"type": "nostalgia", "text": "Game manuals used to be so good. Which one do you still remember?"},
-    {"type": "fill_in", "text": "My comfort game after a long day is ____."},
-    {"type": "hypothetical", "text": "Pick one video game character to be your roommate."},
-    {"type": "collecting", "text": "Limited Run, Strictly Limited, iam8bit... who's bought a limited physical release? What was it?"},
-    {"type": "top3", "text": "Top 3 handheld games ever."},
-    {"type": "hot_take", "text": "Which game had the best ending? Which had the worst?"},
-    {"type": "setup", "text": "Sitting at a desk or on the couch: where do you play?"},
-    {"type": "one_word", "text": "The game that got you into gaming, in one word or title."},
-    {"type": "question", "text": "What's a game you think nobody talks about enough?"},
-    {"type": "this_or_that", "text": "Single player story or online with friends?"},
-    {"type": "niche", "text": "Strategy players: turn-based or real-time?"},
-    {"type": "nostalgia", "text": "What console did you beg for as a kid?"},
-    {"type": "fill_in", "text": "The best game I've played this year is ____."},
-    {"type": "hypothetical", "text": "You can erase your memory of one game and play it fresh. Which one?"},
-    {"type": "collecting", "text": "What's one game you'd never sell, no matter what?"},
-    {"type": "top3", "text": "Top 3 video game soundtracks."},
-    {"type": "hot_take", "text": "Achievements and trophies: do they make games better or worse?"},
-    {"type": "setup", "text": "What's one gaming accessory you can't live without?"},
-    {"type": "one_word", "text": "Describe your gaming week in one word."},
-    {"type": "question", "text": "What's a game you dropped and later came back to?"},
-    {"type": "this_or_that", "text": "Big budget blockbuster or small indie: what are you playing more of?"},
-    {"type": "niche", "text": "Survival horror fans: tank controls or modern controls?"},
-    {"type": "nostalgia", "text": "What's an old game you'd love to play again for the first time?"},
-    {"type": "fill_in", "text": "A sequel that was better than the original: ____."},
-    {"type": "hypothetical", "text": "Two game series crossover. Which two would you put together?"},
-    {"type": "collecting", "text": "Do you buy collector's editions, or just the game?"},
-    {"type": "top3", "text": "Top 3 indie games everyone should play."},
-    {"type": "hot_take", "text": "Which game series should take a long break?"},
-    {"type": "setup", "text": "Wired or wireless controllers?"},
-    {"type": "one_word", "text": "Your gaming mood today, in one word."},
-    {"type": "question", "text": "What's the best price you've ever got on a game?"},
-    {"type": "this_or_that", "text": "Sound on, or music and podcasts in the background?"},
-    {"type": "niche", "text": "Platformer fans: 2D or 3D?"},
-    {"type": "nostalgia", "text": "Arcade memories: what was the cabinet you always ran to?"},
-    {"type": "fill_in", "text": "The game I'd take to a desert island is ____."},
-    {"type": "hypothetical", "text": "You're stuck in the last game you played. Are you surviving?"},
-    {"type": "collecting", "text": "How many games are in your collection, roughly? Physical, digital, both?"},
-    {"type": "top3", "text": "Top 3 game worlds you'd want to explore in real life."},
-    {"type": "hot_take", "text": "Do you finish every game you start, or is it okay to quit?"},
-    {"type": "setup", "text": "What's your current gaming setup in one sentence?"},
-    {"type": "one_word", "text": "The scariest game you've played. Name only."},
-    {"type": "question", "text": "What's the next game on your wishlist?"},
-    {"type": "this_or_that", "text": "New release at launch, or wait for the sale?"},
-    {"type": "niche", "text": "Puzzle game fans: what's the one that broke your brain in the best way?"},
-    {"type": "nostalgia", "text": "Which old console had the best startup sound?"},
-    {"type": "fill_in", "text": "The game with the best side quests is ____."},
-    {"type": "hypothetical", "text": "Pick a video game character to be your co-op partner for life."},
-    {"type": "collecting", "text": "Retro collectors: what's the one game you're still hunting for?"},
-    {"type": "top3", "text": "Top 3 games from your childhood."},
-    {"type": "hot_take", "text": "Is a 60 hour game too long? What's the sweet spot for you?"},
-    {"type": "setup", "text": "Do you use a capture card or record your gameplay?"},
-    {"type": "one_word", "text": "The game you're most hyped for, title only."}
+    {
+      "type": "this_or_that",
+      "text": "Physical or digital: which do you buy more of these days?"
+    },
+    {
+      "type": "niche",
+      "text": "JRPG fans: turn-based or real-time combat?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "What's a game demo disc you played way more than the actual games you owned?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The best video game soundtrack of all time is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You can only play one series for the rest of your life. Which one?"
+    },
+    {
+      "type": "collecting",
+      "text": "What's the highlight of your game shelf right now?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 games of all time. Go."
+    },
+    {
+      "type": "hot_take",
+      "text": "Give me your most unpopular gaming opinion."
+    },
+    {
+      "type": "setup",
+      "text": "What's one thing in your gaming setup you'd upgrade first?"
+    },
+    {
+      "type": "one_word",
+      "text": "Describe your current game in one word."
+    },
+    {
+      "type": "question",
+      "text": "What's a game you bought on sale and ended up loving?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Controller or mouse and keyboard?"
+    },
+    {
+      "type": "niche",
+      "text": "Fighting game players: who's your main and why?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "What was the first game you ever owned?"
+    },
+    {
+      "type": "fill_in",
+      "text": "A game everyone should play at least once: ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "One game gets a brand new sequel tomorrow. You pick it. What is it?"
+    },
+    {
+      "type": "collecting",
+      "text": "Do you keep the boxes for your consoles and accessories, or toss them?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 boss fights you still think about."
+    },
+    {
+      "type": "hot_take",
+      "text": "What's a game everyone loves that just didn't click for you?"
+    },
+    {
+      "type": "setup",
+      "text": "Headphones or speakers when you play?"
+    },
+    {
+      "type": "one_word",
+      "text": "Sum up your backlog in one word."
+    },
+    {
+      "type": "question",
+      "text": "What's the last game you finished?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Handheld or TV: where do you play the most?"
+    },
+    {
+      "type": "niche",
+      "text": "Metroidvania fans: what's the best one you've played?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "Memory card horror stories. Who lost a save they never got over?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The most underrated console ever made is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You can live in any video game world for a week. Where are you going?"
+    },
+    {
+      "type": "collecting",
+      "text": "Amiibo, figures, plushies or none of the above? What do you collect?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 video game villains."
+    },
+    {
+      "type": "hot_take",
+      "text": "Remakes or remasters: which do you actually want more of?"
+    },
+    {
+      "type": "setup",
+      "text": "What controller do you use the most right now?"
+    },
+    {
+      "type": "one_word",
+      "text": "One word for the last game you played."
+    },
+    {
+      "type": "question",
+      "text": "What game is sitting in your backlog that you keep meaning to start?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Easy mode with the story, or hard mode with the struggle?"
+    },
+    {
+      "type": "niche",
+      "text": "Racing game fans: arcade style or full sim?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "What's a game you played at a friend's house as a kid and never forgot?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The best co-op game to play with a friend is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You get to remake any game from scratch. Which one, and what do you change?"
+    },
+    {
+      "type": "collecting",
+      "text": "Steelbooks: worth it or not?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 games you'd recommend to someone who's never played a video game."
+    },
+    {
+      "type": "hot_take",
+      "text": "Is a game ever worth full price on day one anymore? Which ones?"
+    },
+    {
+      "type": "setup",
+      "text": "Show of hands: who still has an old console hooked up next to the new one? Which one?"
+    },
+    {
+      "type": "one_word",
+      "text": "Your favourite game genre. One word."
+    },
+    {
+      "type": "question",
+      "text": "What's the most hours you've put into a single game?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Open world or linear?"
+    },
+    {
+      "type": "niche",
+      "text": "Roguelike fans: what's the run-based game that finally hooked you?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "Game manuals used to be so good. Which one do you still remember?"
+    },
+    {
+      "type": "fill_in",
+      "text": "My comfort game after a long day is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "Pick one video game character to be your roommate."
+    },
+    {
+      "type": "collecting",
+      "text": "Limited Run, Strictly Limited, iam8bit... who's bought a limited physical release? What was it?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 handheld games ever."
+    },
+    {
+      "type": "hot_take",
+      "text": "Which game had the best ending? Which had the worst?"
+    },
+    {
+      "type": "setup",
+      "text": "Sitting at a desk or on the couch: where do you play?"
+    },
+    {
+      "type": "one_word",
+      "text": "The game that got you into gaming, in one word or title."
+    },
+    {
+      "type": "question",
+      "text": "What's a game you think nobody talks about enough?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Single player story or online with friends?"
+    },
+    {
+      "type": "niche",
+      "text": "Strategy players: turn-based or real-time?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "What console did you beg for as a kid?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The best game I've played this year is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You can erase your memory of one game and play it fresh. Which one?"
+    },
+    {
+      "type": "collecting",
+      "text": "What's one game you'd never sell, no matter what?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 video game soundtracks."
+    },
+    {
+      "type": "hot_take",
+      "text": "Achievements and trophies: do they make games better or worse?"
+    },
+    {
+      "type": "setup",
+      "text": "What's one gaming accessory you can't live without?"
+    },
+    {
+      "type": "one_word",
+      "text": "Describe your gaming week in one word."
+    },
+    {
+      "type": "question",
+      "text": "What's a game you dropped and later came back to?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Big budget blockbuster or small indie: what are you playing more of?"
+    },
+    {
+      "type": "niche",
+      "text": "Survival horror fans: tank controls or modern controls?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "What's an old game you'd love to play again for the first time?"
+    },
+    {
+      "type": "fill_in",
+      "text": "A sequel that was better than the original: ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "Two game series crossover. Which two would you put together?"
+    },
+    {
+      "type": "collecting",
+      "text": "Do you buy collector's editions, or just the game?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 indie games everyone should play."
+    },
+    {
+      "type": "hot_take",
+      "text": "Which game series should take a long break?"
+    },
+    {
+      "type": "setup",
+      "text": "Wired or wireless controllers?"
+    },
+    {
+      "type": "one_word",
+      "text": "Your gaming mood today, in one word."
+    },
+    {
+      "type": "question",
+      "text": "What's the best price you've ever got on a game?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Sound on, or music and podcasts in the background?"
+    },
+    {
+      "type": "niche",
+      "text": "Platformer fans: 2D or 3D?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "Arcade memories: what was the cabinet you always ran to?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The game I'd take to a desert island is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You're stuck in the last game you played. Are you surviving?"
+    },
+    {
+      "type": "collecting",
+      "text": "How many games are in your collection, roughly? Physical, digital, both?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 game worlds you'd want to explore in real life."
+    },
+    {
+      "type": "hot_take",
+      "text": "Do you finish every game you start, or is it okay to quit?"
+    },
+    {
+      "type": "setup",
+      "text": "What's your current gaming setup in one sentence?"
+    },
+    {
+      "type": "one_word",
+      "text": "The scariest game you've played. Name only."
+    },
+    {
+      "type": "question",
+      "text": "What's the next game on your wishlist?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "New release at launch, or wait for the sale?"
+    },
+    {
+      "type": "niche",
+      "text": "Puzzle game fans: what's the one that broke your brain in the best way?"
+    },
+    {
+      "type": "nostalgia",
+      "text": "Which old console had the best startup sound?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The game with the best side quests is ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "Pick a video game character to be your co-op partner for life."
+    },
+    {
+      "type": "collecting",
+      "text": "Retro collectors: what's the one game you're still hunting for?"
+    },
+    {
+      "type": "top3",
+      "text": "Top 3 games from your childhood."
+    },
+    {
+      "type": "hot_take",
+      "text": "Is a 60 hour game too long? What's the sweet spot for you?"
+    },
+    {
+      "type": "setup",
+      "text": "Do you use a capture card or record your gameplay?"
+    },
+    {
+      "type": "one_word",
+      "text": "The game you're most hyped for, title only."
+    },
+    {
+      "type": "question",
+      "text": "What game are you playing right now?"
+    }
   ],
   "weekend": [
-    {"type": "question", "text": "What are you playing this weekend?"},
-    {"type": "this_or_that", "text": "This weekend: something new, or an old favourite?"},
-    {"type": "fill_in", "text": "This weekend I'm finally going to finish ____."},
-    {"type": "hypothetical", "text": "You get one whole weekend with zero plans. What game are you playing?"},
-    {"type": "question", "text": "Picked up anything new to play this weekend?"},
-    {"type": "this_or_that", "text": "Couch co-op or solo this weekend?"},
-    {"type": "one_word", "text": "Your weekend game, title only."},
-    {"type": "question", "text": "Grabbed any deals this week? What did you get?"},
-    {"type": "fill_in", "text": "The best game to lose a whole Saturday to is ____."},
-    {"type": "this_or_that", "text": "Late night gaming session or early morning coffee and a controller?"},
-    {"type": "question", "text": "Sunday reset: what's your relaxing game of choice?"},
-    {"type": "hypothetical", "text": "You can only play one game all weekend. What is it?"},
-    {"type": "question", "text": "Weekend backlog check: what's up next for you?"},
-    {"type": "one_word", "text": "How's your weekend gaming going? One word."},
-    {"type": "question", "text": "Any big gaming plans for the weekend?"},
-    {"type": "this_or_that", "text": "One long session this weekend, or a few short ones?"}
+    {
+      "type": "question",
+      "text": "What are you playing this weekend?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "This weekend: something new, or an old favourite?"
+    },
+    {
+      "type": "fill_in",
+      "text": "This weekend I'm finally going to finish ____."
+    },
+    {
+      "type": "hypothetical",
+      "text": "You get one whole weekend with zero plans. What game are you playing?"
+    },
+    {
+      "type": "question",
+      "text": "Picked up anything new to play this weekend?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "Couch co-op or solo this weekend?"
+    },
+    {
+      "type": "one_word",
+      "text": "Your weekend game, title only."
+    },
+    {
+      "type": "question",
+      "text": "Grabbed any deals this week? What did you get?"
+    },
+    {
+      "type": "fill_in",
+      "text": "The best game to lose a whole Saturday to is ____."
+    },
+    {
+      "type": "this_or_that",
+      "text": "Late night gaming session or early morning coffee and a controller?"
+    },
+    {
+      "type": "question",
+      "text": "Sunday reset: what's your relaxing game of choice?"
+    },
+    {
+      "type": "hypothetical",
+      "text": "You can only play one game all weekend. What is it?"
+    },
+    {
+      "type": "question",
+      "text": "Weekend backlog check: what's up next for you?"
+    },
+    {
+      "type": "one_word",
+      "text": "How's your weekend gaming going? One word."
+    },
+    {
+      "type": "question",
+      "text": "Any big gaming plans for the weekend?"
+    },
+    {
+      "type": "this_or_that",
+      "text": "One long session this weekend, or a few short ones?"
+    }
   ]
 }
