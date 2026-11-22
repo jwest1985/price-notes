@@ -4,7 +4,9 @@ It breaks up the feed between deal posts. Runs on every timer run but only posts
 from TALK_HOUR (Toronto time) on, it schedules the next unused line from talk_posts.json at a :15 or :45
 time (deal posts use :00 and :30), X first, then Threads +5 and Bluesky +10 minutes, like the deals.
 Weekend lines are used Friday to Sunday. Lines come in types (question, this-or-that, niche, hot take,
-nostalgia, collecting...) and two days in a row never get the same type. Lines don't repeat until the whole list has been used.
+nostalgia, collecting...) and two days in a row never get the same type.
+About every other day it posts a talking point from the day's gaming news instead (a headline already
+posted with its link, here with no link and a short question), when there is one. Lines don't repeat until the whole list has been used.
 It does not count toward the day's 30 deals.
 """
 import json
@@ -31,7 +33,41 @@ def pick(pool, used, weekend, last_type=None):
         last = next((t for t in reversed(used) if t in texts), None)
         used[:] = [t for t in used if t not in texts]
         fresh = [e for e in lines if e["text"] != last] or lines
-    return next((e for e in fresh if e["type"] != last_type), fresh[0])
+    pick_ = next((e for e in fresh if e["type"] != last_type), None)
+    if pick_ is None:  # only one type left unused: borrow a not-recent line of another type instead
+        pos = {t: i for i, t in enumerate(used)}
+        other = [e for e in lines if e["type"] != last_type]
+        pick_ = min(other, key=lambda e: pos.get(e["text"], -1)) if other else fresh[0]  # least recently used
+    return pick_
+
+
+NEWS_ENDINGS = ["Thoughts?", "What do you think?", "Are you in?", "Hyped or not?", "Good news or bad news?"]
+
+
+def news_talk(state):
+    """A talking point from today's gaming news (a headline already posted with its link), with no link.
+    Used about every other day when there is one; otherwise the regular list is used."""
+    drafts = {d["id"]: d for d in pb.load(pb.DRAFTS_PATH, [])}
+    sent = pb.load(pb.SENT_PATH, {})
+    used = set(state.get("news_used", []))
+    picks = []
+    for did, v in sent.items():
+        d = drafts.get(did)
+        if not d or d.get("kind") != "news" or "posts" not in v or did in used:
+            continue
+        try:
+            at = pb.datetime.fromisoformat(v["at"])
+        except Exception:
+            continue
+        if pb.NOW - at <= timedelta(hours=24):
+            title = pb.re.sub(r"\s+", " ", d.get("item") or "").strip().rstrip(".")
+            if 12 <= len(title) <= 180:
+                picks.append((at, did, title))
+    if not picks:
+        return None
+    at, did, title = max(picks)  # the newest headline
+    ending = NEWS_ENDINGS[len(state.get("news_used", [])) % len(NEWS_ENDINGS)]
+    return {"type": "news", "text": f"{title}.\n\n{ending}", "news_id": did}
 
 
 def main():
@@ -57,7 +93,11 @@ def main():
         pb.save(STATE_PATH, state)
         return
     pool = json.load(open(POOL_PATH, encoding="utf-8"))
-    entry = pick(pool, state["used"], local.weekday() >= 4, state.get("last_type"))
+    entry = None
+    if state.get("last_type") != "news" and cfg.get("daily_talk_news", True):
+        entry = news_talk(state)
+    if entry is None:
+        entry = pick(pool, state["used"], local.weekday() >= 4, state.get("last_type"))
     text = entry["text"]
     channels = pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key)
     ids = {}
@@ -77,7 +117,10 @@ def main():
             print("daily talk post: error", c["service"], str(e)[:200])
     if ids:
         state["days"][today] = {"text": text, "at": due.isoformat(timespec="minutes"), "posts": ids}
-        state["used"].append(text)
+        if entry.get("news_id"):
+            state["news_used"] = (state.get("news_used", []) + [entry["news_id"]])[-100:]
+        else:
+            state["used"].append(text)
         state["last_type"] = entry["type"]
         state["days"] = dict(sorted(state["days"].items())[-60:])
         pb.save(STATE_PATH, state)
