@@ -33,8 +33,7 @@
   ],
   "link_in_reply": [
     "twitter",
-    "threads",
-    "bluesky"
+    "threads"
   ],
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
