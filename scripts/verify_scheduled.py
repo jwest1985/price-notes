@@ -20,6 +20,7 @@ import collect  # noqa: E402
 import push_buffer as pb  # noqa: E402
 
 WINDOW = timedelta(minutes=25)
+CARDED_PATH = os.path.join(pb.DATA, "reply_cards_set.json")
 SMALL_DROP = 0.05  # drops under 5% are corrected automatically; 5% or more are held for review
 NOW = datetime.now(timezone.utc)
 LOCAL = ZoneInfo("America/Toronto")
@@ -404,6 +405,18 @@ def main():
                     pb.gql(key, EDIT, {"input": {"id": pid, "saveToDraft": True}})
                 except Exception:
                     pass
+    # reply link cards (Threads/Bluesky): set once per post, shortly before it goes out
+    carded = set(pb.load(CARDED_PATH, []))
+    for pid, node in scheduled.items():
+        when = collect.parse_date(node.get("dueAt"))
+        if pid not in carded and when and when <= NOW + WINDOW and pid in post_to_deal:
+            try:
+                if pb.set_reply_cards(key, EDIT, node):
+                    print("verify: reply link card set to your link:", pid)
+                carded.add(pid)
+            except Exception as e:
+                print("   couldn't set the reply link card", pid, str(e)[:120])
+    pb.save(CARDED_PATH, sorted(carded)[-500:])
     # an Amazon post must never go out without your amzn.to link (the long link has no tracking ID)
     for pid, node in scheduled.items():
         when = collect.parse_date(node.get("dueAt"))

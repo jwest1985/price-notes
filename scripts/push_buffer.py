@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -208,6 +209,33 @@ def add_disclosure(key, mutation, node):
             inp["metadata"] = {svc or "twitter": {"thread": parts}}
         return gql(key, mutation, {"input": inp})
     return gql(key, mutation, {"input": {"id": node["id"], "text": with_disclosure(node.get("text") or "", svc)}})
+
+
+def set_reply_cards(key, mutation, node):
+    """Threads and Bluesky make a link card for a reply's link, but Buffer fills it with the plain store link
+    (your tracking ID stripped). Point the card at the exact link in the reply instead, with no picture."""
+    svc = node.get("channelService")
+    meta = node.get("metadata") or {}
+    thread = meta.get("thread") or []
+    if svc not in ("threads", "bluesky") or len(thread) < 2:
+        return False
+    main = thread[0].get("text") or ""
+    parts = [{"text": main}]
+    for t in thread[1:]:
+        text = t.get("text") or ""
+        part = {"text": text}
+        m = URL_RE.search(text)
+        if m:
+            host = urllib.parse.urlparse(m.group(0)).netloc.lower()
+            site = "Amazon.com" if "amazon" in host else host.replace("www.", "")
+            part["metadata"] = {svc: {"linkAttachment": {"url": m.group(0), "title": main[:200] or site,
+                                                          "description": site, "thumbnail": ""}}}
+        parts.append(part)
+    body = {"thread": parts}
+    if svc == "threads":
+        body = {"type": "post", "thread": parts, **({"topic": meta["topic"]} if meta.get("topic") else {})}
+    gql(key, mutation, {"input": {"id": node["id"], "metadata": {svc: body}}})
+    return True
 
 
 def edit_main_text(key, mutation, node, new_text):

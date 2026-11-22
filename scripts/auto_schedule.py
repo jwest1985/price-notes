@@ -137,6 +137,11 @@ def main():
             for p in posts:  # the ad disclosure on every affiliate post
                 if pb.needs_disclosure(pb.full_text(p), d.get("store")) and pb.disclosure_missing(p):
                     pb.add_disclosure(key, vs.EDIT, p)
+            for p in posts:  # link cards on Threads/Bluesky replies point at your link, not the plain store link
+                try:
+                    pb.set_reply_cards(key, vs.EDIT, p)
+                except Exception as e:
+                    print("   couldn't set the reply link card", p["id"], str(e)[:120])
             slot = next(slots, None)
             if slot is None:
                 print("auto-schedule: no free slot in the next hours; the rest waits for the next run")
