@@ -3,7 +3,8 @@
 It breaks up the feed between deal posts. Runs on every timer run but only posts once a day:
 from TALK_HOUR (Toronto time) on, it schedules the next unused line from talk_posts.json at a :15 or :45
 time (deal posts use :00 and :30), X first, then Threads +5 and Bluesky +10 minutes, like the deals.
-Weekend lines are used Friday to Sunday. Lines don't repeat until the whole list has been used.
+Weekend lines are used Friday to Sunday. Lines come in types (question, this-or-that, niche, hot take,
+nostalgia, collecting...) and two days in a row never get the same type. Lines don't repeat until the whole list has been used.
 It does not count toward the day's 30 deals.
 """
 import json
@@ -21,14 +22,16 @@ LAST = (21, 45)
 OFFSET = {"twitter": 0, "threads": 5, "bluesky": 10}
 
 
-def pick(pool, used, weekend):
+def pick(pool, used, weekend, last_type=None):
+    """Next unused line, never the same type (question, this-or-that, niche, hot take...) as the day before."""
     lines = pool["weekend"] if weekend else pool["any_day"]
-    fresh = [t for t in lines if t not in used]
+    fresh = [e for e in lines if e["text"] not in used]
     if not fresh:  # whole list used: start over, but not with the line used last
-        last = next((t for t in reversed(used) if t in lines), None)
-        used[:] = [t for t in used if t not in lines]
-        fresh = [t for t in lines if t != last] or lines
-    return fresh[0]
+        texts = [e["text"] for e in lines]
+        last = next((t for t in reversed(used) if t in texts), None)
+        used[:] = [t for t in used if t not in texts]
+        fresh = [e for e in lines if e["text"] != last] or lines
+    return next((e for e in fresh if e["type"] != last_type), fresh[0])
 
 
 def main():
@@ -54,7 +57,8 @@ def main():
         pb.save(STATE_PATH, state)
         return
     pool = json.load(open(POOL_PATH, encoding="utf-8"))
-    text = pick(pool, state["used"], local.weekday() >= 4)
+    entry = pick(pool, state["used"], local.weekday() >= 4, state.get("last_type"))
+    text = entry["text"]
     channels = pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key)
     ids = {}
     for c in channels:
@@ -74,6 +78,7 @@ def main():
     if ids:
         state["days"][today] = {"text": text, "at": due.isoformat(timespec="minutes"), "posts": ids}
         state["used"].append(text)
+        state["last_type"] = entry["type"]
         state["days"] = dict(sorted(state["days"].items())[-60:])
         pb.save(STATE_PATH, state)
         print(f"daily talk post: scheduled for {due:%H:%M}: {text}")
