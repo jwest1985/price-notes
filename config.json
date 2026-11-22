@@ -43,7 +43,15 @@
   "affiliate_stores": [
     "Amazon"
   ],
-  "lego_daily_cap": 1,
+  "category_caps": {
+    "lego": 1,
+    "accessories": 3,
+    "collectibles": 3,
+    "consoles": 2,
+    "movies_tv": 3,
+    "tech": 2,
+    "other": 2
+  },
   "daily_talk_post": true,
   "daily_talk_news": false,
   "x_disclosure": "#ad",

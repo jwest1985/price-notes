@@ -120,6 +120,45 @@ def with_disclosure(text, service):
 LEGO_GAME = re.compile(r"\((?:PS5|PS4|Xbox|Switch|PC|Steam)\b|\b(?:PS5|PS4|Xbox Series|Nintendo Switch|Switch 2|Steam key)\b", re.I)
 
 
+GAME_LABEL = re.compile(r"\((?:[^)]*\b(?:PS5|PS4|Xbox|Switch|PC|Steam|Game-Key Card|digital|physical)\b)[^)]*\)", re.I)
+DIGITAL_STORES = {"GOG", "Steam", "US PSN", "US eShop", "Fanatical", "Gamesplanet", "Epic", "Humble"}
+CATEGORY_RULES = [  # (category, pattern), checked in this order after LEGO and games
+    ("collectibles", r"\bfigures?\b|figurine|plush|statue|funko|\bamiibo\b|ornament|puzzle|poster|replica|\bpins?\b|keychain|\bmug\b|"
+                     r"t-?shirt|hoodie|\bhat\b|apparel|socks|backpack|\bvinyl\b|soundtrack|art ?book|booster|trading card|\btcg\b|"
+                     r"\bcards?\b.*\b(?:pokemon|pokémon|magic|yu-?gi-?oh)|collectible|youtooz|nendoroid|blanket|lamp|light"),
+    ("accessories", r"controller|gamepad|joy-?con|dualsense|headset|keyboard|gaming mouse|wireless mouse|\bmouse\b|mouse ?pad|"
+                    r"charg|\bdock\b|carrying case|travel case|protective case|\bcase for\b|\bgrips?\b|\bcable\b|adapter|"
+                    r"\bstand\b|enclosure|\bssd\b|nvme|micro ?sd|memory card|storage expansion|hard drive|racing wheel|steering wheel|"
+                    r"fight ?stick|arcade stick|capture card|webcam|microphone|\bmic\b|gaming chair|screen protector|thumb ?sticks?|"
+                    r"\bpedals?\b|power bank|battery pack|cooling fan"),
+    ("consoles", r"\bconsole\b|legion go|rog ally|steam deck|msi claw|switch 2 (?:system|bundle)|ps5 (?:pro|slim|digital|bundle)|"
+                 r"playstation 5 (?:pro|slim|console|bundle)|xbox series [xs] (?:console|bundle)|playstation portal|meta quest|psvr"),
+    ("movies_tv", r"blu-?ray|\b4k ultra hd\b|\bdvd\b|steelbook|criterion|complete series|\bseason\b|digital hd"),
+    ("tech", r"\btv\b|television|monitor|laptop|macbook|chromebook|notebook|motherboard|graphics card|\bgpu\b|geforce|radeon|"
+             r"\bcpu\b|processor|ryzen|intel core|router|wi-?fi|\bram\b|ddr[45]|power supply|\bpsu\b|pc case|ipad|tablet|"
+             r"projector|soundbar|speaker|earbuds|headphones|airpods|smart ?watch|camera|desktop|gaming pc|\bmini pc\b|printer|kindle|echo"),
+]
+CATEGORY_RES = [(c, re.compile(p, re.I)) for c, p in CATEGORY_RULES]
+
+
+def deal_category(d):
+    """lego, game, collectibles, accessories, consoles, movies_tv, tech, other (news is counted separately)."""
+    if d.get("kind") != "deal":
+        return "news"
+    if is_lego_set(d):
+        return "lego"
+    text = f"{d.get('item') or ''} {(d.get('posts') or {}).get('x', '')}"
+    rx = dict(CATEGORY_RES)
+    if rx["movies_tv"].search(text):
+        return "movies_tv"
+    if d.get("store") in DIGITAL_STORES or (GAME_LABEL.search(text) and not rx["accessories"].search(d.get("item") or "")):
+        return "game"
+    for cat in ("collectibles", "consoles", "tech", "accessories"):
+        if rx[cat].search(text):
+            return cat
+    return "other"
+
+
 def is_lego_set(d):
     """A LEGO building set (not a LEGO video game, which carries a console label)."""
     if d.get("kind") != "deal":
@@ -459,17 +498,21 @@ def main():
             st = (by_id.get(did) or {}).get("store", "")
             per_store[st] = per_store.get(st, 0) + 1
     news_today = sum(n for st, n in per_store.items() if st in NEWS_SOURCES)
-    # LEGO sets: at most lego_daily_cap a day (config, 1 for now), so toys, accessories, collectibles and plushies get room
-    lego_cap = int((load(os.path.join(ROOT, "config.json"), {}) or {}).get("lego_daily_cap", 3))
-    lego_today = sum(1 for did, v in sent.items() if "posts" in v and did in by_id and is_lego_set(by_id[did])
-                     and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local)
-    lego_room = max(0, lego_cap - lego_today)
+    # every kind of deal has its own daily cap (config "category_caps"; LEGO sets 1), so no one kind floods the feed
+    cfg_all = load(os.path.join(ROOT, "config.json"), {}) or {}
+    caps = dict(cfg_all.get("category_caps", {}))
+    caps.setdefault("lego", int(cfg_all.get("lego_daily_cap", 1)))
+    cat_today = {}
+    for did, v in sent.items():
+        if "posts" in v and did in by_id and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local:
+            c = deal_category(by_id[did])
+            cat_today[c] = cat_today.get(c, 0) + 1
     kept = []
     for d in candidates:
-        if is_lego_set(d):
-            if lego_room <= 0:
-                continue  # over today's LEGO limit: left for later (it ages out if the day stays full)
-            lego_room -= 1
+        c = deal_category(d)
+        if c in caps and cat_today.get(c, 0) >= caps[c]:
+            continue  # this kind is full for today: left for later (it ages out if the day stays full)
+        cat_today[c] = cat_today.get(c, 0) + 1
         kept.append(d)
     candidates = kept
     amazon = [d for d in candidates if d.get("store") == "Amazon"]
