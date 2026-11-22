@@ -43,7 +43,7 @@
   "affiliate_stores": [
     "Amazon"
   ],
-  "lego_daily_cap": 3,
+  "lego_daily_cap": 1,
   "daily_talk_post": true,
   "x_disclosure": "#ad",
   "bluesky_disclosure": "#ad",

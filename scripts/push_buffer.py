@@ -459,7 +459,7 @@ def main():
             st = (by_id.get(did) or {}).get("store", "")
             per_store[st] = per_store.get(st, 0) + 1
     news_today = sum(n for st, n in per_store.items() if st in NEWS_SOURCES)
-    # LEGO sets: at most lego_daily_cap a day (config), so toys, accessories, collectibles and plushies get room
+    # LEGO sets: at most lego_daily_cap a day (config, 1 for now), so toys, accessories, collectibles and plushies get room
     lego_cap = int((load(os.path.join(ROOT, "config.json"), {}) or {}).get("lego_daily_cap", 3))
     lego_today = sum(1 for did, v in sent.items() if "posts" in v and did in by_id and is_lego_set(by_id[did])
                      and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local)
