@@ -139,6 +139,11 @@ CATEGORY_RULES = [  # (category, pattern), checked in this order after LEGO and 
              r"projector|soundbar|speaker|earbuds|headphones|airpods|smart ?watch|camera|desktop|gaming pc|\bmini pc\b|printer|kindle|echo"),
 ]
 CATEGORY_RES = [(c, re.compile(p, re.I)) for c, p in CATEGORY_RULES]
+# tech deals must be gaming tech (gaming laptops/monitors/TVs, PC gaming parts, gaming routers); MacBooks, iPads,
+# office laptops, smartwatches and the like are skipped
+GAMING_TECH = re.compile(r"gaming|gamer|esports|\brtx\b|geforce|radeon|\brog\b|razer|alienware|predator|nitro|omen|legion|"
+                         r"\btuf\b|\bmsi\b|steelseries|corsair|hyperx|logitech g|\b(?:120|144|165|170|180|240|360)\s?hz\b|"
+                         r"\bvrr\b|hdmi 2\.1|motherboard|graphics card|\bgpu\b|ryzen|\bx3d\b", re.I)
 
 
 def deal_category(d):
@@ -510,6 +515,9 @@ def main():
     kept = []
     for d in candidates:
         c = deal_category(d)
+        if c == "tech" and not GAMING_TECH.search(f"{d.get('item') or ''} {(d.get('posts') or {}).get('x', '')}"):
+            sent[d["id"]] = {"at": NOW.isoformat(timespec="seconds"), "skipped": "not gaming tech"}
+            continue
         if c in caps and cat_today.get(c, 0) >= caps[c]:
             continue  # this kind is full for today: left for later (it ages out if the day stays full)
         cat_today[c] = cat_today.get(c, 0) + 1
