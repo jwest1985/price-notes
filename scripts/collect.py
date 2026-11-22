@@ -532,6 +532,80 @@ PLATFORMS = [(r"playstation 5|\bps5\b", "PS5"), (r"playstation 4|\bps4\b", "PS4"
              (r"xbox one", "Xbox One")]
 
 
+ACCESSORY_RE = re.compile(r"controller|gamepad|headset|headphones|earbuds|charg(?:er|ing)|cable|\bcase\b|\bstand\b|\bskin\b|faceplate|"
+                          r"\bconsole\b|membership|gift card|subscription|amiibo|figure|plush|statue|keychain|poster|vinyl|"
+                          r"soundtrack|\bbook\b|art of|strategy guide|\bmouse\b|keyboard|monitor|\bchair\b|\bdesk\b|\bssd\b|"
+                          r"memory card|microsd|\bgrip\b|\bcover\b|joy-?con|\bdock\b|adapter|battery|\blego\b|funko|\btcg\b|"
+                          r"booster|\bdeck\b|steam deck|\bmini\b|retro console|handheld|wheel|fight stick|arcade|\bmerch\b|shirt|hoodie",
+                          re.I)
+PC_STORES = {"steam", "gog", "epic games store", "epic", "fanatical", "gamesplanet", "humble", "humble store",
+             "green man gaming", "gmg", "gamebillet", "indiegala"}
+STEAM_KEY_STORES = {"fanatical", "gamesplanet", "humble", "humble store", "green man gaming", "gmg", "gamebillet", "indiegala"}
+PLATFORM_PATTERNS = PLATFORMS + [(r"\bpc\b|windows", "PC")]
+
+
+def _platform_in(text):
+    for pat, label in PLATFORM_PATTERNS:
+        if re.search(pat, text or "", re.I):
+            return label
+    return ""
+
+
+def label_game(d, url, feed):
+    """Every game post says which console it's for and whether it's physical or digital (or a Game-Key Card).
+    Returns (item, problem); problem is set when a retail game's console can't be found, so it isn't posted."""
+    item, store = d.get("item") or "", (d.get("store") or "").strip()
+    st = store.lower()
+    from_games = "video games" in (feed.get("name") or "").lower()
+    platform = _platform_in(item)
+    is_game = (from_games or platform or st in PC_STORES or st in ("us psn", "psn", "playstation store", "us eshop", "eshop")) \
+        and not ACCESSORY_RE.search(item)
+    if not is_game or d.get("note") == "free":
+        return item, ""
+    raw = item
+    # find the console for store listings that don't say it (camelcamelcamel / camelmart titles, never Amazon itself)
+    if not platform and st in ("amazon", "walmart"):
+        m = re.search(r"amazon\.com/(?:[^/]+/)?dp/([A-Z0-9]{10})", url or "") if st == "amazon" else \
+            re.search(r"walmart\.com/ip/(?:[^/]+/)?(\d+)", url or "")
+        if m:
+            try:
+                site = "camelcamelcamel.com" if st == "amazon" else "camelmart.com"
+                page = fetch(f"https://{site}/product/{m.group(1)}", ua=APP_UA)
+                page = page.decode("utf-8", "replace") if isinstance(page, bytes) else page
+                og = re.search(r'<meta property="og:title" content="([^"]+)"', page)
+                full = html.unescape(og.group(1)) if og else ""
+                platform = _platform_in(full)
+                raw = item + " " + full
+            except Exception:
+                pass
+    if st in PC_STORES:
+        platform = "PC"
+        fmt = "Steam key" if st in STEAM_KEY_STORES and re.search(r"steam", item, re.I) else "digital"
+    elif st in ("us psn", "psn", "playstation store"):
+        platform = platform or "PS5"
+        fmt = "digital"
+    elif st in ("us eshop", "eshop", "nintendo eshop"):
+        platform = platform or "Switch"
+        fmt = "digital"
+    else:
+        if not platform:
+            return item, "game console not found in the listing"
+        if re.search(r"game-?key card", raw, re.I):
+            fmt = "Game-Key Card"
+        elif re.search(r"digital (?:code|download)|download code|\[digital|email delivery|online game code", raw, re.I):
+            fmt = "digital code"
+        else:
+            fmt = "physical"
+    # take any old platform/format labels off the name, then add one clear label
+    name = re.sub(r"\s*[\(\[](?:[^)\]]*?\b(?:PS5|PS4|Switch 2|Switch|Xbox[^)\]]*|PC|Steam|digital code|digital|physical|"
+                  r"Game-?Key Card)\b[^)\]]*)[\)\]]", "", item, flags=re.I)
+    name = re.sub(r"\s+[-\u2013\u2014]\s+(?:PlayStation\s*[45]|PS[45]|Nintendo Switch(?: 2)?|Xbox[\w |]*|PC)\s*$", "", name, flags=re.I)
+    name = re.sub(r"\s{2,}", " ", name).strip(" -,")
+    both = re.search(r"switch 2", raw, re.I) and re.search(r"(?<!switch )\bswitch\b(?! 2)", raw, re.I) and st in ("us eshop", "eshop")
+    plat = "Switch/Switch 2" if both else platform
+    return f"{name} ({plat}, {fmt})", ""
+
+
 def clean_item(item, store):
     """Tidy a product name for a post: no "[Prime]"-style labels, no raw Amazon keyword titles, no ALL CAPS."""
     item = re.sub(r"^\s*(?:\[[^\]]{1,20}\]\s*)+", "", item).strip()
@@ -1174,6 +1248,12 @@ def main():
                 if not d["store"] and url:
                     d["store"] = store_from_host(urllib.parse.urlparse(url).netloc)
                 d["item"] = clean_item(d.get("item") or "", d.get("store") or "")
+                d["item"], problem = label_game(d, url, feed)
+                if problem:
+                    new_tips.append({"id": iid, "source": feed["name"], "kind": problem, "text": it["title"],
+                                     "link": it["link"], "found_at": found})
+                    seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
+                    continue
                 text = deal_sentences(d, iid + str(d.get("price") or ""))
                 disclose = affiliate or cfg.get("tag_all_deal_posts", True)
                 key = norm_key(d["item"]) + f" {d.get('price') or ''}"

@@ -176,6 +176,7 @@ def _tokens(t):
 
 def _same_deal(item, price, text):
     """Same product (most of its name words) at exactly the same price."""
+    item = re.sub(r"\((?:[^)]*\b(?:physical|digital|Game-Key Card|Steam key)\b[^)]*)\)", "", item or "", flags=re.I)  # our own label
     want = _tokens(item)
     if not want or price is None:
         return False
