@@ -117,6 +117,17 @@ def with_disclosure(text, service):
     return text.rstrip() + " " + DISCLOSURE.get(service, "#ad")
 
 
+LEGO_GAME = re.compile(r"\((?:PS5|PS4|Xbox|Switch|PC|Steam)\b|\b(?:PS5|PS4|Xbox Series|Nintendo Switch|Switch 2|Steam key)\b", re.I)
+
+
+def is_lego_set(d):
+    """A LEGO building set (not a LEGO video game, which carries a console label)."""
+    if d.get("kind") != "deal":
+        return False
+    text = f"{d.get('item') or ''} {(d.get('posts') or {}).get('x', '')}"
+    return bool(re.search(r"\blego\b", text, re.I)) and not LEGO_GAME.search(text)
+
+
 def create_draft(key, channel_id, text, picture="", alt="", tag_ids=(), pictures=None, alts=None, reply_link=False):
     # Amazon links go into drafts without a tracking ID (your amzn.to link carries it)
     text = re.sub(r"(https://www\.amazon\.com/[^\s?]+)\?tag=[^\s&]+(?:&(\S*))?", lambda m: m.group(1) + ("?" + m.group(2) if m.group(2) else ""), text)
@@ -448,6 +459,19 @@ def main():
             st = (by_id.get(did) or {}).get("store", "")
             per_store[st] = per_store.get(st, 0) + 1
     news_today = sum(n for st, n in per_store.items() if st in NEWS_SOURCES)
+    # LEGO sets: at most lego_daily_cap a day (config), so toys, accessories, collectibles and plushies get room
+    lego_cap = int((load(os.path.join(ROOT, "config.json"), {}) or {}).get("lego_daily_cap", 3))
+    lego_today = sum(1 for did, v in sent.items() if "posts" in v and did in by_id and is_lego_set(by_id[did])
+                     and datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() == today_local)
+    lego_room = max(0, lego_cap - lego_today)
+    kept = []
+    for d in candidates:
+        if is_lego_set(d):
+            if lego_room <= 0:
+                continue  # over today's LEGO limit: left for later (it ages out if the day stays full)
+            lego_room -= 1
+        kept.append(d)
+    candidates = kept
     amazon = [d for d in candidates if d.get("store") == "Amazon"]
     queues = {}
     for d in candidates:
