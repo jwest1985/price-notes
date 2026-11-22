@@ -136,7 +136,8 @@ CATEGORY_RULES = [  # (category, pattern), checked in this order after LEGO and 
     ("movies_tv", r"blu-?ray|\b4k ultra hd\b|\bdvd\b|steelbook|criterion|complete series|\bseason\b|digital hd"),
     ("tech", r"\btv\b|television|monitor|laptop|macbook|chromebook|notebook|motherboard|graphics card|\bgpu\b|geforce|radeon|"
              r"\bcpu\b|processor|ryzen|intel core|router|wi-?fi|\bram\b|ddr[45]|power supply|\bpsu\b|pc case|ipad|tablet|"
-             r"projector|soundbar|speaker|earbuds|headphones|airpods|smart ?watch|camera|desktop|gaming pc|\bmini pc\b|printer|kindle|echo"),
+             r"projector|soundbar|speaker|earbuds|headphones|airpods|smart ?watch|galaxy watch|apple watch|fitbit|iphone|"
+             r"galaxy s\d|galaxy tab|pixel \d|smartphone|\bimac\b|surface pro|e-?reader|camera|desktop|gaming pc|\bmini pc\b|printer|kindle|echo"),
 ]
 CATEGORY_RES = [(c, re.compile(p, re.I)) for c, p in CATEGORY_RULES]
 # tech deals must be gaming tech (gaming laptops/monitors/TVs, PC gaming parts, gaming routers); MacBooks, iPads,
