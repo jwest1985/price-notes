@@ -84,6 +84,7 @@ jobs:
       - name: Pictures
         if: steps.gate.outputs.go == 'true' && !inputs.seed
         env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           AMAZON_TAG: ${{ secrets.AMAZON_TAG }}
         run: |

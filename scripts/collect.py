@@ -551,6 +551,9 @@ def _platform_in(text):
     return ""
 
 
+DISABLED_SOURCES = load_json(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "disabled_sources.json"), {})
+
+
 def label_game(d, url, feed):
     """Every game post says which console it's for and whether it's physical or digital (or a Game-Key Card).
     Returns (item, problem); problem is set when a retail game's console can't be found, so it isn't posted."""
@@ -1178,8 +1181,10 @@ def main():
                     pic = html.unescape(og.group(1)) if og else ""
                 except Exception:
                     pic = ""
+                if not pic.startswith("http"):
+                    continue  # no picture, no post
                 news_extra = {"picture": pic, "alt": f"{title}, image from {feed['name']}"[:400],
-                              "picture_type": "article image"} if pic.startswith("http") else {}
+                              "picture_type": "article image"}
                 new_drafts.append({**news_extra, "id": iid, "base": iid, "kind": "news", "source": feed["name"], "store": feed["name"],
                                    "found_at": found, "source_link": it["link"], "url": link, "link_type": "article",
                                    "image": "", "multi": False, "code": "", "posts": make_posts(title, link, False, cfg),
@@ -1247,6 +1252,10 @@ def main():
                     continue
                 if not d["store"] and url:
                     d["store"] = store_from_host(urllib.parse.urlparse(url).netloc)
+                if (d.get("store") or "").lower() == "walmart" or \
+                        f"{feed['name']} | {d.get('store') or '?'}" in DISABLED_SOURCES:
+                    seen[iid] = {"at": NOW.isoformat(timespec="seconds"), "key": None}
+                    continue  # removed: no pictures (Walmart), or switched off for missing pictures
                 d["item"] = clean_item(d.get("item") or "", d.get("store") or "")
                 d["item"], problem = label_game(d, url, feed)
                 if problem:

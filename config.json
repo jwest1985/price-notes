@@ -1,14 +1,49 @@
 {
   "auto_schedule": true,
   "threads_topic": "Gaming Threads",
-  "threads_topics": [{"match": "\\blego\\b", "topic": "Lego"}, {"match": "complete series|\\bseason\\s*\\d|\\bseasons\\b|\\btv series\\b|\\bminiseries\\b|\\bthe complete (?:first|second|third|fourth|fifth|\\w+) season", "topic": "TV Threads"}, {"match": "smart tv|roku tv|google tv|fire tv|\\bqled\\b|mini ?led|oled tv|\\b\\d{2,3}(?:\\\"|\u201d|-inch| inch)[^,]*\\btv\\b|television", "topic": "Tech Threads"}, {"match": "blu-?ray|\\b4k uhd\\b|4k ultra hd|\\bdvd\\b|steelbook|criterion|movie collection|film collection|\\bdigital hd\\b", "topic": "Film Threads"}, {"match": "nintendo switch|\\bswitch\\s*2\\b|\\(switch|switch\\)|switch oled|switch lite|joy-?con|\\beshop\\b|amiibo", "topic": "Nintendo Switch"}, {"match": "gaming|\\bgame\\b|\\bgames\\b|ps5|ps4|playstation|xbox|nintendo|switch|steam|controller|joy-con|amiibo|gamepad|8bitdo|razer|steelseries|hyperx|turtle beach|corsair|logitech g|rog ally|legion go|meta quest|psvr", "topic": "Gaming Threads"}, {"match": "\\b(?:tv|television|oled tv|qled|mini ?led|monitor|laptop|chromebook|macbook|ipad|tablet|ssd|nvme|hard drive|router|wi-?fi|mesh|earbuds|headphones|airpods|speaker|soundbar|smartwatch|apple watch|charger|power bank|usb-?c|smart home|echo|kindle|camera|webcam|keyboard|mouse|printer|projector)\\b", "topic": "Tech Threads"}],
-  "link_in_reply": ["twitter", "threads", "bluesky"],
+  "threads_topics": [
+    {
+      "match": "\\blego\\b",
+      "topic": "Lego"
+    },
+    {
+      "match": "complete series|\\bseason\\s*\\d|\\bseasons\\b|\\btv series\\b|\\bminiseries\\b|\\bthe complete (?:first|second|third|fourth|fifth|\\w+) season",
+      "topic": "TV Threads"
+    },
+    {
+      "match": "smart tv|roku tv|google tv|fire tv|\\bqled\\b|mini ?led|oled tv|\\b\\d{2,3}(?:\\\"|”|-inch| inch)[^,]*\\btv\\b|television",
+      "topic": "Tech Threads"
+    },
+    {
+      "match": "blu-?ray|\\b4k uhd\\b|4k ultra hd|\\bdvd\\b|steelbook|criterion|movie collection|film collection|\\bdigital hd\\b",
+      "topic": "Film Threads"
+    },
+    {
+      "match": "nintendo switch|\\bswitch\\s*2\\b|\\(switch|switch\\)|switch oled|switch lite|joy-?con|\\beshop\\b|amiibo",
+      "topic": "Nintendo Switch"
+    },
+    {
+      "match": "gaming|\\bgame\\b|\\bgames\\b|ps5|ps4|playstation|xbox|nintendo|switch|steam|controller|joy-con|amiibo|gamepad|8bitdo|razer|steelseries|hyperx|turtle beach|corsair|logitech g|rog ally|legion go|meta quest|psvr",
+      "topic": "Gaming Threads"
+    },
+    {
+      "match": "\\b(?:tv|television|oled tv|qled|mini ?led|monitor|laptop|chromebook|macbook|ipad|tablet|ssd|nvme|hard drive|router|wi-?fi|mesh|earbuds|headphones|airpods|speaker|soundbar|smartwatch|apple watch|charger|power bank|usb-?c|smart home|echo|kindle|camera|webcam|keyboard|mouse|printer|projector)\\b",
+      "topic": "Tech Threads"
+    }
+  ],
+  "link_in_reply": [
+    "twitter",
+    "threads",
+    "bluesky"
+  ],
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,
   "seen_days": 30,
   "tag_all_deal_posts": false,
-  "affiliate_stores": ["Amazon"],
+  "affiliate_stores": [
+    "Amazon"
+  ],
   "x_disclosure": "#ad",
   "bluesky_disclosure": "#ad",
   "threads_disclosure": "[ad]",
@@ -99,70 +134,6 @@
       "filter": true,
       "max_per_run": 2,
       "url": "https://camelcamelcamel.com/top_drops/feed?t=daily&bn=electronics&d=20"
-    },
-    {
-      "name": "camelmart (Walmart) popular deals: Video Games",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": false,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/popular.xml?deal=1&bn=video-games"
-    },
-    {
-      "name": "camelmart (Walmart) daily drops: Video Games",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": false,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/top_drops/feed?t=daily&bn=video-games&d=20"
-    },
-    {
-      "name": "camelmart (Walmart) popular deals: Movies & TV",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": false,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/popular.xml?deal=1&bn=movies-tv-shows"
-    },
-    {
-      "name": "camelmart (Walmart) daily drops: Movies & TV",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": false,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/top_drops/feed?t=daily&bn=movies-tv-shows&d=20"
-    },
-    {
-      "name": "camelmart (Walmart) popular deals: Toys",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": true,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/popular.xml?deal=1&bn=toys"
-    },
-    {
-      "name": "camelmart (Walmart) daily drops: Toys",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": true,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/top_drops/feed?t=daily&bn=toys&d=20"
-    },
-    {
-      "name": "camelmart (Walmart) popular deals: Electronics",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": true,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/popular.xml?deal=1&bn=electronics"
-    },
-    {
-      "name": "camelmart (Walmart) daily drops: Electronics",
-      "kind": "deal",
-      "parser": "camel",
-      "filter": true,
-      "max_per_run": 2,
-      "url": "https://camelmart.com/top_drops/feed?t=daily&bn=electronics&d=20"
     },
     {
       "name": "Steam deals (CheapShark)",
@@ -791,5 +762,29 @@
     "Swap Amazon link": "6b009fa973831df01480587a",
     "Turn on shortening link": "6b01a48a8bd84d5966f25711"
   },
-  "generic_keywords": ["figure", "plush", "statue", "collectible", "gift card", "retro", "limited edition", "exclusive edition", "collector", "booster", "prepaid card", "bonus card", "promo credit", "handheld", "star wars", "marvel", "batman", "dc comics", "anime", "soundtrack", "headset", "controller", "carrying case"]
+  "generic_keywords": [
+    "figure",
+    "plush",
+    "statue",
+    "collectible",
+    "gift card",
+    "retro",
+    "limited edition",
+    "exclusive edition",
+    "collector",
+    "booster",
+    "prepaid card",
+    "bonus card",
+    "promo credit",
+    "handheld",
+    "star wars",
+    "marvel",
+    "batman",
+    "dc comics",
+    "anime",
+    "soundtrack",
+    "headset",
+    "controller",
+    "carrying case"
+  ]
 }

@@ -689,6 +689,37 @@ def alt_text(d, kind):
 
 # --------------------------------------------------------------------------- main
 
+PICTURE_STATS_PATH = os.path.join(DATA, "picture_stats.json")
+DISABLED_PATH = os.path.join(DATA, "disabled_sources.json")
+MIN_TRIES, MIN_SUCCESS = 6, 0.6  # a source+store that can't get pictures this often gets switched off
+
+
+def record_picture(d, ok):
+    """Keep score of pictures per source and store; switch off any that can't get pictures consistently."""
+    key = f"{d.get('source', '?')} | {d.get('store', '?')}"
+    stats = load(PICTURE_STATS_PATH, {})
+    hist = (stats.get(key, []) + [1 if ok else 0])[-20:]
+    stats[key] = hist
+    with open(PICTURE_STATS_PATH, "w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=1, ensure_ascii=False)
+    if len(hist) >= MIN_TRIES and sum(hist) / len(hist) < MIN_SUCCESS:
+        disabled = load(DISABLED_PATH, {})
+        if key not in disabled:
+            disabled[key] = {"at": NOW.isoformat(timespec="seconds"), "pictures": f"{sum(hist)} of {len(hist)}"}
+            with open(DISABLED_PATH, "w", encoding="utf-8") as f:
+                json.dump(disabled, f, indent=1, ensure_ascii=False)
+            print(f"SOURCE SWITCHED OFF: {key} (pictures for only {sum(hist)} of {len(hist)} deals)")
+            topic = os.environ.get("NTFY_TOPIC", "").strip()
+            if topic:
+                try:
+                    req = urllib.request.Request(f"https://ntfy.sh/{topic}", method="POST", data=(
+                        f"{d.get('store')} deals from {d.get('source')} are switched off: pictures worked for only "
+                        f"{sum(hist)} of the last {len(hist)} deals.").encode(), headers={"Title": "Source removed", "Tags": "warning"})
+                    urllib.request.urlopen(req, timeout=15).read()
+                except Exception:
+                    pass
+
+
 def main():
     drafts = load(DRAFTS_PATH, [])
     sent = load(SENT_PATH, {})
@@ -741,6 +772,11 @@ def main():
                     d["pictures"] = [REPO_RAW + os.path.basename(pp) for pp, _ in pages]
                     d["alts"] = [f"{store} sale, page {i + 1} of {len(pages)}: {c} deals with names and prices"
                                  for i, (_, c) in enumerate(pages)]
+            if d.get("store") != "Amazon":  # Amazon posts never get pictures (by rule); everything else must have one
+                ok = bool(d.get("picture"))
+                if not ok and not d.get("skip"):
+                    d["skip"] = "no picture could be made"
+                record_picture(d, ok)
             print(f"- {d['picture_type']}: {(d.get('item') or '')[:60]}" + (f"  [{d['skip']}]" if d.get("skip") else ""))
         browser.close()
 

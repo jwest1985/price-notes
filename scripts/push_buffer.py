@@ -422,6 +422,10 @@ def main():
             continue  # wait until the picture step has handled it
         if d.get("kind") == "deal" and len(re.sub(r"[^A-Za-z0-9]", "", d.get("item") or "")) < 3:
             d["skip"] = "no product name"
+        if d.get("store") == "Walmart":
+            d["skip"] = "Walmart removed (no pictures)"
+        elif d.get("kind") == "deal" and d.get("store") != "Amazon" and str(d.get("picture_type", "")).startswith(("needs picture", "no picture")):
+            d["skip"] = "no picture could be made"
         if d.get("skip"):
             sent[d["id"]] = {"at": NOW.isoformat(timespec="seconds"), "skipped": d["skip"]}
             continue
