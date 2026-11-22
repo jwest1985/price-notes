@@ -138,6 +138,7 @@ jobs:
         continue-on-error: true
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python scripts/daily_talk.py
 
       - name: Nightly report check (last run of the day)
