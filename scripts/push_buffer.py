@@ -559,7 +559,7 @@ def main():
         if NOW - found > MAX_AGE:
             continue
         candidates.append(d)
-    # Amazon first (the only affiliate program for now), but other stores get turns too, like Wario64's feed:
+    # Amazon and the other stores take turns (Amazon is the only affiliate program for now), like Wario64's feed:
     # Amazon, other store, Amazon, other store... The other stores take turns (GOG, Steam, Walmart, PlayStation,
     # eShop, Fangamer...), newest first, and no single non-Amazon store gets more than STORE_DAILY_CAP a day.
     candidates.sort(key=lambda d: d["found_at"], reverse=True)
@@ -605,12 +605,18 @@ def main():
         for st in list(queues):
             if queues[st]:
                 others.append(queues[st].pop(0))
+    # Each run usually has room for only 1-2 posts (the daily pace), so whichever side has had fewer posts today
+    # goes first: Amazon and the other stores + news stay about even, instead of Amazon always taking the slot.
+    amazon_today = per_store.get("Amazon", 0)
+    others_today = sum(n for st, n in per_store.items() if st and st != "Amazon")
+    others_first = bool(others) and others_today < amazon_today
     mixed = []
     while amazon or others:
-        if amazon:
-            mixed.append(amazon.pop(0))
-        if others:
-            mixed.append(others.pop(0))
+        first, second = (others, amazon) if others_first else (amazon, others)
+        if first:
+            mixed.append(first.pop(0))
+        if second:
+            mixed.append(second.pop(0))
     candidates = mixed
     if first_run:
         for d in drafts:
