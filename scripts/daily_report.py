@@ -90,6 +90,24 @@ def main():
 
     st = pb.load(os.path.join(pb.DATA, "status.json"), {})
     report["pipeline"] = [f"{f['name']}: {f['error'][:100]}" for f in st.get("feeds", []) if f.get("error")]
+    # the day's mix: Amazon vs other stores vs news (drafts made that day); flagged if one side took over
+    mix = {"Amazon": 0, "other stores": 0, "news": 0}
+    for did, v in sent.items():
+        if "posts" not in v:
+            continue
+        try:
+            if datetime.fromisoformat(v["at"]).astimezone(LOCAL).date() != DAY:
+                continue
+        except Exception:
+            continue
+        d = drafts.get(did) or {}
+        side = "news" if d.get("kind") == "news" else ("Amazon" if d.get("store") == "Amazon" else "other stores")
+        mix[side] += 1
+    report["mix"] = mix
+    total = sum(mix.values())
+    if total >= 8 and (mix["Amazon"] > total * 0.65 or mix["Amazon"] < total * 0.35):
+        report["pipeline"].append(f"mix out of balance: {mix['Amazon']} Amazon, {mix['other stores']} other stores, "
+                                  f"{mix['news']} news (aim is about half and half)")
     try:  # how the Amazon prices were checked that day: live on Amazon, by a backup, or not confirmed
         report["amazon_checks"] = pb.load(os.path.join(pb.DATA, "amazon_checks.json"), {}).get(DAY.isoformat(), {})
     except Exception:
