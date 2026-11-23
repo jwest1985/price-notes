@@ -139,7 +139,8 @@ def send_now(parts, label):
                 thread = [{"text": t, "assets": assets if i == 0 else []} for i, t in enumerate(texts)]
                 inp["metadata"] = {meta_key: {"thread": thread}}
             if meta_key == "threads" and pb.THREADS_TOPIC:
-                inp.setdefault("metadata", {}).setdefault("threads", {}).update({"type": "post", "topic": pb.threads_topic_for(texts[0])})
+                inp.setdefault("metadata", {}).setdefault("threads", {}).update(
+                    {"type": "post", **({"topic": pb.threads_topic_for(texts[0])} if pb.threads_use_topic() else {})})
             data = pb.gql(key, pb.CREATE, {"input": inp})
             res = data["createPost"]
             if res.get("__typename") != "PostActionSuccess":

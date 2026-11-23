@@ -38,6 +38,13 @@
   "paused_apps": [
     "threads"
   ],
+  "threads_restart": {
+    "first_day": 5,
+    "add_per_day": 1,
+    "max_per_day": 15,
+    "topic_every": 4,
+    "topics_per_day": 3
+  },
   "link_in_reply": [
     "twitter",
     "threads"

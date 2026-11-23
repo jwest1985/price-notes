@@ -140,7 +140,7 @@ def main():
     for c in channels:
         inp = {"text": text, "channelId": c["id"], "schedulingType": "automatic", "mode": "addToQueue",
                "saveToDraft": True, "assets": [], "tagIds": [tag_id] if tag_id else [], "source": "price-notes"}
-        if c["service"] == "threads":
+        if c["service"] == "threads" and pb.threads_use_topic():  # topic tags only every so often
             inp["metadata"] = {"threads": {"type": "post", "topic": pb.THREADS_TOPIC}}
         try:
             res = pb.gql(key, pb.CREATE, {"input": inp})["createPost"]

@@ -89,6 +89,11 @@ def main():
     for p in all_posts(key, ["draft"]):
         if p["channelService"] in paused:
             continue  # paused app: its drafts are never scheduled
+        if p["channelService"] == "threads":
+            resumed = (pb.load(pb.THREADS_STATE_PATH, {}) or {}).get("resumed_on") or ""
+            made = (p.get("createdAt") or "")[:10]
+            if resumed and made and made < resumed:
+                continue  # Threads drafts made before a pause ended stay drafts (stale): never scheduled
         did = post_to_deal.get(p["id"])
         if did and did in drafts:
             by_deal.setdefault(did, []).append(p)

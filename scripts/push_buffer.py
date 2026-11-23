@@ -204,6 +204,68 @@ THREADS_TOPIC = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads
 THREADS_TOPICS = (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads_topics", [])
 
 
+THREADS_STATE_PATH = os.path.join(DATA, "threads_state.json")
+
+
+def _threads_cfg():
+    c = load(os.path.join(ROOT, "config.json"), {}) or {}
+    return c, c.get("threads_restart", {}) or {}
+
+
+def _threads_state():
+    st = load(THREADS_STATE_PATH, {})
+    today = NOW.astimezone(LOCAL).date().isoformat()
+    if st.get("day") != today:
+        st.update({"day": today, "posts": 0, "topics": 0})
+    return st
+
+
+def threads_note_pause_state():
+    """Remember when Threads comes back from a pause, so it restarts slowly from that day."""
+    c, _ = _threads_cfg()
+    st = _threads_state()
+    paused = "threads" in c.get("paused_apps", [])
+    if paused:
+        st["paused"] = True
+    elif st.get("paused") or not st.get("resumed_on"):
+        st["paused"] = False
+        st["resumed_on"] = NOW.astimezone(LOCAL).date().isoformat()
+    save(THREADS_STATE_PATH, st)
+    return paused
+
+
+def threads_room_today():
+    """Threads deal posts still allowed today: a slow restart after a pause (first_day a day, +add_per_day each day,
+    up to max_per_day)."""
+    _, r = _threads_cfg()
+    st = _threads_state()
+    try:
+        days = (NOW.astimezone(LOCAL).date() - datetime.fromisoformat(st.get("resumed_on")).date()).days
+    except Exception:
+        days = 0
+    cap = min(int(r.get("max_per_day", 15)), int(r.get("first_day", 5)) + int(r.get("add_per_day", 1)) * max(0, days))
+    return max(0, cap - st.get("posts", 0))
+
+
+def threads_count_post():
+    st = _threads_state()
+    st["posts"] = st.get("posts", 0) + 1
+    save(THREADS_STATE_PATH, st)
+
+
+def threads_use_topic():
+    """Topic tags only every so often: on every Nth Threads post (topic_every), at most topics_per_day a day."""
+    _, r = _threads_cfg()
+    st = _threads_state()
+    st["since_topic"] = st.get("since_topic", 0) + 1
+    use = st["since_topic"] >= int(r.get("topic_every", 4)) and st.get("topics", 0) < int(r.get("topics_per_day", 3))
+    if use:
+        st["since_topic"] = 0
+        st["topics"] = st.get("topics", 0) + 1
+    save(THREADS_STATE_PATH, st)
+    return use
+
+
 def threads_topic_for(text):
     for rule in THREADS_TOPICS:
         if re.search(rule.get("match", "$^"), text or "", re.I):
@@ -218,9 +280,9 @@ def _service_of(channel_id):
     return ""
 
 
-POST_FIELDS = ("id text dueAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } "
+POST_FIELDS = ("id text dueAt createdAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } "
                "... on ThreadsPostMetadata { thread { text } topic } ... on BlueskyPostMetadata { thread { text } } }")
-BASIC_FIELDS = "id text dueAt status channelService tags { id name }"
+BASIC_FIELDS = "id text dueAt createdAt status channelService tags { id name }"
 
 
 def gql_posts(key, query, variables):
@@ -328,9 +390,10 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
         "tagIds": list(tag_ids),
         "source": "price-notes",
     }
-    if THREADS_TOPIC and _service_of(channel_id) == "threads":
-        inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text)}}  # Threads topic tag / community
     svc = _service_of(channel_id)
+    topic = threads_topic_for(text) if THREADS_TOPIC and svc == "threads" and threads_use_topic() else None
+    if svc == "threads":  # Threads topic tag / community: only every so often (threads_restart.topic_every)
+        inp["metadata"] = {"threads": {"type": "post", **({"topic": topic} if topic else {})}}
     if reply_link and svc in ("twitter", "threads", "bluesky"):
         main, link = split_link(text)
         if link:  # deal posts on X and Threads: the link goes in the first reply (link posts are shown to fewer people)
@@ -340,7 +403,7 @@ def _create(key, channel_id, text, assets, tag_ids=(), reply_link=False):
             reply = with_disclosure(link, svc) if had else link
             thread = [{"text": main, "assets": assets}, {"text": reply}]
             if svc == "threads":
-                inp["metadata"] = {"threads": {"type": "post", "topic": threads_topic_for(text), "thread": thread}}
+                inp["metadata"] = {"threads": {"type": "post", **({"topic": topic} if topic else {}), "thread": thread}}
             else:  # twitter / bluesky
                 inp["metadata"] = {svc: {"thread": thread}}
     data = gql(key, CREATE, {"input": inp})
@@ -464,6 +527,7 @@ def main():
             print("Buffer channel lookup failed:", e)
             return
     paused = set((load(os.path.join(ROOT, "config.json"), {}) or {}).get("paused_apps", []))
+    threads_note_pause_state()
     channels = [c for c in channels if c["service"] not in paused]  # paused apps get no new posts
     status["channels"] = [f"{c['service']}:{c['name']}" for c in channels]
     if not channels:
@@ -573,6 +637,10 @@ def main():
     for d in candidates[:min(MAX_DRAFTS_PER_RUN, room)]:
         posted = {}
         for c in channels:
+            if c["service"] == "threads":
+                if threads_room_today() <= 0:
+                    continue  # Threads gets fewer posts a day than X and Bluesky (slow restart)
+                threads_count_post()
             text = d["posts"].get(SERVICE_TEXT[c["service"]]) or d["posts"].get("x")
             if needs_disclosure(text, d.get("store")):
                 text = with_disclosure(text, c["service"])
