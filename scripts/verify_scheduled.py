@@ -465,7 +465,8 @@ def main():
                     def swap(m):
                         return f"${new:.2f}" if abs(num(m.group(1)) - claimed) < 0.009 else m.group(0)
                     fixed = re.sub(r"\$([\d,]+(?:\.\d+)?)", swap, text, count=1)
-                    if fixed != text:
+                    if fixed != text:  # the old % off no longer matches the new price
+                        fixed = re.sub(r" \(\d{1,3}% Off\)", "", fixed)
                         try:
                             pb.edit_main_text(key, EDIT, scheduled[pid], fixed)
                         except Exception as e:

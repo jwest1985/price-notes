@@ -265,7 +265,7 @@ def free_games():
 # --------------------------------------------------------------------------- evening round-up
 
 def pct_off(text):
-    m = re.search(r"(\d+)% off", text)
+    m = re.search(r"(\d+)% off", text, re.I)
     return int(m.group(1)) if m else 0
 
 

@@ -119,7 +119,8 @@ def main():
                     text = p.get("text") or ""
                     fixed = vs.re.sub(r"\$([\d,]+(?:\.\d+)?)",
                                       lambda m: f"${new:.2f}" if abs(vs.num(m.group(1)) - old) < 0.009 else m.group(0), text, count=1)
-                    if fixed != text:
+                    if fixed != text:  # the old % off no longer matches the new price
+                        fixed = vs.re.sub(r" \(\d{1,3}% Off\)", "", fixed)
                         pb.edit_main_text(key, vs.EDIT, p, fixed)
                 d["price"] = f"{new:.2f}"
                 print(f"auto-schedule: price fixed {name}: now ${new:.2f}")

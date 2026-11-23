@@ -992,6 +992,15 @@ def deal_sentences(d, seed):
     return dict(zip(("x", "threads", "bluesky"), picks))
 
 
+def pct_off(d):
+    """The store's own % off for non-Amazon deals (from its sale data), shown as "(50% Off)" right after the price.
+    Amazon posts are left as they are (you edit those when swapping the link)."""
+    if (d.get("store") or "") == "Amazon":
+        return ""
+    m = re.search(r"(\d{1,3})% off", d.get("note") or "")
+    return f" ({int(m.group(1))}% Off)" if m and 0 < int(m.group(1)) < 100 else ""
+
+
 def deal_variants(d):
     base = deal_sentence(d)
     item = platform_parens(re.sub(r"\s+", " ", d.get("item") or "").strip())
@@ -1020,17 +1029,16 @@ def deal_variants(d):
         # no nested brackets, and no "Reg. $X" / "was $X" claims we can't confirm with the store
         extras = [re.sub(r"^\((.*)\)$", r"\1", x.strip()) for x in extras]
         extras = [x for x in extras if x and not re.match(r"(?:reg(?:ular)?\.?|list|was|orig(?:inal)?\.?|msrp)\b", x, re.I)]
+        po = pct_off(d)
+        if po:  # the % goes right after the price, so it isn't repeated in the brackets at the end
+            extras = [x for x in extras if "% off" not in x.lower()]
         ex = " (" + ", ".join(extras) + ")" if extras else ""
-        p = f"${d['price']}"
+        p = f"${d['price']}{po}"
         out = [base,
                f"{store} has {item} for {p}{code}{ex}",
                f"{item} for {p} {prep} {store}{code}{ex}"]
-        pct = re.search(r"(\d+)% off", d.get("note") or "")
-        if pct:  # a confirmed discount: these phrasings are accurate
-            rest = [x for x in extras if "% off" not in x]
-            rx = " (" + ", ".join(rest) + ")" if rest else ""
-            out += [f"{item} drops to {p} {prep} {store}{code}{rx}, {pct.group(1)}% off",
-                    f"{item} is {pct.group(1)}% off {prep} {store}, now {p}{code}{rx}"]
+        if po:  # a confirmed discount: "drops to" is accurate
+            out.append(f"{item} drops to {p} {prep} {store}{code}{ex}")
         return out
     if d.get("note") == "on sale":
         return [base, f"{store} has {item} on sale", f"On sale at {store}: {item}"]
@@ -1046,7 +1054,8 @@ def deal_sentence(d):
         base = f"{item} is free on {store}" if store else f"{item} is free"
         return base + d.get("suffix", "")
     if d.get("price"):
-        s = f"{item} is ${d['price']}"
+        po = pct_off(d)
+        s = f"{item} is ${d['price']}{po}"
         if store:
             digital = re.search(r"steam|gog|eshop|nintendo|psn|playstation store|xbox|epic|humble|fanatical|green man|gamesplanet|gamebillet|itch|indiegala|ubisoft|ea app|battle\.net|amazon", store, re.I)
             s += f" {'on' if digital else 'at'} {store}"
@@ -1056,6 +1065,8 @@ def deal_sentence(d):
         # no nested brackets, and no "Reg. $X" / "was $X" claims we can't confirm with the store
         extras = [re.sub(r"^\((.*)\)$", r"\1", x.strip()) for x in extras]
         extras = [x for x in extras if x and not re.match(r"(?:reg(?:ular)?\.?|list|was|orig(?:inal)?\.?|msrp)\b", x, re.I)]
+        if po:
+            extras = [x for x in extras if "% off" not in x.lower()]
         if extras:
             s += " (" + ", ".join(extras) + ")"
         return s
