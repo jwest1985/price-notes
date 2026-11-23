@@ -230,6 +230,7 @@ def threads_note_pause_state():
     elif st.get("paused") or not st.get("resumed_on"):
         st["paused"] = False
         st["resumed_on"] = NOW.astimezone(LOCAL).date().isoformat()
+        st["resumed_at"] = NOW.isoformat(timespec="seconds")  # Threads drafts made before this are never scheduled
     save(THREADS_STATE_PATH, st)
     return paused
 

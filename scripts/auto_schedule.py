@@ -90,9 +90,15 @@ def main():
         if p["channelService"] in paused:
             continue  # paused app: its drafts are never scheduled
         if p["channelService"] == "threads":
-            resumed = (pb.load(pb.THREADS_STATE_PATH, {}) or {}).get("resumed_on") or ""
-            made = (p.get("createdAt") or "")[:10]
-            if resumed and made and made < resumed:
+            ts = pb.load(pb.THREADS_STATE_PATH, {}) or {}
+            # drafts from before the pause ended stay drafts; until the pause end is recorded, none older than this fix
+            resumed = ts.get("resumed_at") or "2026-11-23T18:45:00+00:00"
+            made = p.get("createdAt") or ""
+            try:
+                stale = datetime.fromisoformat(made.replace("Z", "+00:00")) < datetime.fromisoformat(resumed)
+            except Exception:
+                stale = True
+            if stale:
                 continue  # Threads drafts made before a pause ended stay drafts (stale): never scheduled
         did = post_to_deal.get(p["id"])
         if did and did in drafts:
