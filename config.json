@@ -35,9 +35,7 @@
       "topic": "Tech Threads"
     }
   ],
-  "paused_apps": [
-    "threads"
-  ],
+  "paused_apps": [],
   "threads_restart": {
     "first_day": 5,
     "add_per_day": 1,
