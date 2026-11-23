@@ -23,6 +23,10 @@
       "topic": "Nintendo Switch"
     },
     {
+      "match": "\\(PC\\b|\\bPC,|steam key|\\bon steam\\b|\\bsteam deck\\b|\\bon gog\\b|\\bgog has\\b|epic games|fanatical|gamesplanet|graphics card|geforce|\\brtx\\b|radeon|ryzen|motherboard|gaming (?:pc|laptop|desktop|mouse|keyboard)|mechanical keyboard|legion go|rog ally|msi claw|\\bpc gaming\\b",
+      "topic": "PC Gaming"
+    },
+    {
       "match": "gaming|\\bgame\\b|\\bgames\\b|ps5|ps4|playstation|xbox|nintendo|switch|steam|controller|joy-con|amiibo|gamepad|8bitdo|razer|steelseries|hyperx|turtle beach|corsair|logitech g|rog ally|legion go|meta quest|psvr",
       "topic": "Gaming Threads"
     },
