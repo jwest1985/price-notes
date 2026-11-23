@@ -43,10 +43,7 @@
     "topic_every": 4,
     "topics_per_day": 3
   },
-  "link_in_reply": [
-    "twitter",
-    "threads"
-  ],
+  "link_in_reply": [],
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,
