@@ -119,7 +119,8 @@ def send_now(parts, label):
     if not key:
         print("no BUFFER_API_KEY; would send:", json.dumps(parts, indent=1)[:3000])
         return False
-    channels = pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key)
+    paused = set((pb.load(os.path.join(ROOT, "config.json"), {}) or {}).get("paused_apps", []))
+    channels = [c for c in (pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key)) if c["service"] not in paused]
     ok = True
     for c in channels:
         svc = pb.SERVICE_TEXT[c["service"]]
