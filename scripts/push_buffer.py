@@ -605,11 +605,13 @@ def main():
         for st in list(queues):
             if queues[st]:
                 others.append(queues[st].pop(0))
-    # Each run usually has room for only 1-2 posts (the daily pace), so whichever side has had fewer posts today
-    # goes first: Amazon and the other stores + news stay about even, instead of Amazon always taking the slot.
+    # Each run usually has room for only 1-2 posts (the daily pace). Amazon gets the edge but not the whole day:
+    # it goes first while it's under its share (config amazon_share, about 60%); once it's ahead of that, the
+    # other stores + news go first.
+    share = float(cfg_all.get("amazon_share", 0.6))
     amazon_today = per_store.get("Amazon", 0)
     others_today = sum(n for st, n in per_store.items() if st and st != "Amazon")
-    others_first = bool(others) and others_today < amazon_today
+    others_first = bool(others) and amazon_today > share * (amazon_today + others_today)
     mixed = []
     while amazon or others:
         first, second = (others, amazon) if others_first else (amazon, others)

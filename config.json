@@ -52,6 +52,7 @@
   "affiliate_stores": [
     "Amazon"
   ],
+  "amazon_share": 0.6,
   "category_caps": {
     "lego": 1,
     "accessories": 3,

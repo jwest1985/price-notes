@@ -105,9 +105,9 @@ def main():
         mix[side] += 1
     report["mix"] = mix
     total = sum(mix.values())
-    if total >= 8 and (mix["Amazon"] > total * 0.65 or mix["Amazon"] < total * 0.35):
+    if total >= 8 and (mix["Amazon"] > total * 0.75 or mix["Amazon"] < total * 0.45):
         report["pipeline"].append(f"mix out of balance: {mix['Amazon']} Amazon, {mix['other stores']} other stores, "
-                                  f"{mix['news']} news (aim is about half and half)")
+                                  f"{mix['news']} news (aim is about 60% Amazon, 40% other stores and news)")
     try:  # how the Amazon prices were checked that day: live on Amazon, by a backup, or not confirmed
         report["amazon_checks"] = pb.load(os.path.join(pb.DATA, "amazon_checks.json"), {}).get(DAY.isoformat(), {})
     except Exception:
