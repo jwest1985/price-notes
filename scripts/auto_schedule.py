@@ -84,8 +84,11 @@ def main():
             due = datetime.fromisoformat(p["dueAt"].replace("Z", "+00:00")).replace(second=0, microsecond=0)
             taken.add(due)
 
+    paused = set(cfg.get("paused_apps", []))
     by_deal = {}
     for p in all_posts(key, ["draft"]):
+        if p["channelService"] in paused:
+            continue  # paused app: its drafts are never scheduled
         did = post_to_deal.get(p["id"])
         if did and did in drafts:
             by_deal.setdefault(did, []).append(p)

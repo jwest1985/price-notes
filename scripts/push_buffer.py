@@ -463,6 +463,8 @@ def main():
             save(STATUS_PATH, status)
             print("Buffer channel lookup failed:", e)
             return
+    paused = set((load(os.path.join(ROOT, "config.json"), {}) or {}).get("paused_apps", []))
+    channels = [c for c in channels if c["service"] not in paused]  # paused apps get no new posts
     status["channels"] = [f"{c['service']}:{c['name']}" for c in channels]
     if not channels:
         status["errors"].append("No X, Threads or Bluesky channels found in Buffer")

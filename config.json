@@ -35,6 +35,9 @@
       "topic": "Tech Threads"
     }
   ],
+  "paused_apps": [
+    "threads"
+  ],
   "link_in_reply": [
     "twitter",
     "threads"

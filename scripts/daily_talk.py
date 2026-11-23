@@ -91,7 +91,10 @@ def schedule_approved(key, state):
     due = start + timedelta(minutes=(15 - start.minute % 30) % 30)
     if (due.hour, due.minute) > LAST or due.date() != local.date():
         return
+    paused = set((pb.load(os.path.join(pb.ROOT, "config.json"), {}) or {}).get("paused_apps", []))
     for svc, pid in waiting.items():
+        if svc in paused:
+            continue
         p = drafts.get(pid)
         if p is None:
             continue  # not a draft any more: you scheduled, posted or deleted it yourself
@@ -131,7 +134,8 @@ def main():
         entry = pick(pool, state["used"], local.weekday() >= 4, state.get("last_type"))
     text = entry["text"]
     tag_id = (cfg.get("buffer_tags") or {}).get(APPROVE_TAG, "")
-    channels = pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key)
+    channels = [c for c in (pb.load(pb.CHANNELS_PATH, []) or pb.get_channels(key))
+                if c["service"] not in set(cfg.get("paused_apps", []))]
     ids = {}
     for c in channels:
         inp = {"text": text, "channelId": c["id"], "schedulingType": "automatic", "mode": "addToQueue",
