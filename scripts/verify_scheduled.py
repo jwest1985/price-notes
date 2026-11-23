@@ -316,14 +316,14 @@ def check_deal(d, page_getter):
 
 
 def posted_price(d, text):
-    """The price the post claims: the deal's own price, else the $ amount in the text."""
+    """The price the post claims: the $ amount in the post's text (so a price you corrected by hand counts),
+    else the deal's own price."""
     if d.get("note") == "free" or re.search(r"\bfree\b|giving away", text, re.I) and "$" not in text:
         return 0.0
-    p = num(d.get("price"))
-    if p is not None:
-        return p
-    m = re.search(r"\$([\d,]+(?:\.\d+)?)", text)
-    return num(m.group(1)) if m else None
+    m = re.search(r"\$([\d,]+(?:\.\d+)?)", text or "")
+    if m and num(m.group(1)) is not None:
+        return num(m.group(1))
+    return num(d.get("price"))
 
 
 def verdict(state, live, claimed, detail, store=""):
