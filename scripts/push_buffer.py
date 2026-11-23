@@ -282,7 +282,7 @@ def _service_of(channel_id):
 
 POST_FIELDS = ("id text dueAt createdAt status channelService tags { id name } metadata { ... on TwitterPostMetadata { thread { text } } "
                "... on ThreadsPostMetadata { thread { text } topic } ... on BlueskyPostMetadata { thread { text } } }")
-BASIC_FIELDS = "id text dueAt createdAt status channelService tags { id name }"
+BASIC_FIELDS = "id text dueAt status channelService tags { id name }"
 
 
 def gql_posts(key, query, variables):
