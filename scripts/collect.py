@@ -558,6 +558,7 @@ def label_game(d, url, feed):
     """Every game post says which console it's for and whether it's physical or digital (or a Game-Key Card).
     Returns (item, problem); problem is set when a retail game's console can't be found, so it isn't posted."""
     item, store = d.get("item") or "", (d.get("store") or "").strip()
+    item = re.sub(r"\bSwich\b", "Switch", item)  # store listing typos
     st = store.lower()
     from_games = "video games" in (feed.get("name") or "").lower()
     platform = _platform_in(item)
@@ -593,16 +594,25 @@ def label_game(d, url, feed):
     else:
         if not platform:
             return item, "game console not found in the listing"
-        if re.search(r"game-?key card", raw, re.I):
+        if re.search(r"code in (?:a )?box", raw, re.I):
+            fmt = "code in a box"
+        elif re.search(r"game-?key card", raw, re.I):
             fmt = "Game-Key Card"
-        elif re.search(r"digital (?:code|download)|download code|\[digital|email delivery|online game code", raw, re.I):
+        elif re.search(r"digital (?:code|download)|download code|\[digital|email delivery|online game code|"
+                       r"(?:switch(?: 2)?|ps[45]|xbox[^)]*)\s+digital\b", raw, re.I):
             fmt = "digital code"
         else:
             fmt = "physical"
     # take any old platform/format labels off the name, then add one clear label
-    name = re.sub(r"\s*[\(\[](?:[^)\]]*?\b(?:PS5|PS4|Switch 2|Switch|Xbox[^)\]]*|PC|Steam|digital code|digital|physical|"
-                  r"Game-?Key Card)\b[^)\]]*)[\)\]]", "", item, flags=re.I)
+    name = re.sub(r"\s*[\(\[](?:[^)\]]*?\b(?:PS5|PS4|Switch 2|Switch|Swich|Nintendo|Xbox[^)\]]*|PC|Steam|digital code|digital|physical|"
+                  r"Game-?Key Card|code in (?:a )?box)\b[^)\]]*)[\)\]]", "", item, flags=re.I)
     name = re.sub(r"\s+[-\u2013\u2014]\s+(?:PlayStation\s*[45]|PS[45]|Nintendo Switch(?: 2)?|Xbox[\w |]*|PC)\s*$", "", name, flags=re.I)
+    # console names inside the title ("... Nintendo Switch Standard Edition", "..., Nintendo Switch 2") come off too:
+    # the label already says the console
+    name = re.sub(r"[\s,\-\u2013\u2014]*\b(?:for\s+)?(?:Nintendo Switch(?:\s*2)?|Switch 2|PlayStation\s*[45]|PS[45]|"
+                  r"Xbox Series X(?:\s*\|\s*S)?|Xbox One)\b(?=\s*(?:[-,]?\s*Standard Edition)?\s*$|\s+Standard Edition)",
+                  "", name, flags=re.I)
+    name = re.sub(r"[\s,\-\u2013\u2014]*\bStandard Edition\b", "", name, flags=re.I)
     name = re.sub(r"\s{2,}", " ", name).strip(" -,")
     both = re.search(r"switch 2", raw, re.I) and re.search(r"(?<!switch )\bswitch\b(?! 2)", raw, re.I) and st in ("us eshop", "eshop")
     plat = "Switch/Switch 2" if both else platform
