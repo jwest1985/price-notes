@@ -55,6 +55,23 @@ def finished(d, posts):
     return True, ""
 
 
+SHORT_LINK = vs.re.compile(r"https?://(?:link\.amazon|amzn\.to)/[A-Za-z0-9]+")
+USED_LINKS_PATH = os.path.join(pb.DATA, "used_links.json")
+
+
+def link_problem(did, name, posts, owners):
+    """Your swapped Amazon link must be the same on every app for this deal, and not one already used for a
+    different deal (a link pasted into the wrong drafts)."""
+    links = {m.group(0).split("://", 1)[1] for p in posts for m in SHORT_LINK.finditer(pb.full_text(p))}
+    if len(links) > 1:
+        return "the Amazon link isn't the same on every app: " + ", ".join(sorted(links))
+    for link in links:
+        o = owners.get(link)
+        if o and o["deal"] != did:
+            return f"this Amazon link ({link}) is already on another deal: {o['item']}. One of them has the wrong link"
+    return ""
+
+
 def free_slots(taken):
     """X slot times (UTC) from now on, skipping ones already used by a scheduled X post."""
     t = (NOW + LEAD).astimezone(LOCAL)
@@ -78,6 +95,16 @@ def main():
     post_to_deal = {pid: did for did, v in sent.items() for pid in (v.get("posts") or {}).values()}
 
     scheduled = all_posts(key, ["scheduled"])
+    # which deal each swapped Amazon link belongs to: scheduled posts now, plus links used in the last 30 days
+    used = {k: v for k, v in pb.load(USED_LINKS_PATH, {}).items() if v.get("at", "") > (NOW - timedelta(days=30)).isoformat()}
+    owners = dict(used)
+    for p in scheduled:
+        did = post_to_deal.get(p["id"])
+        for m in SHORT_LINK.finditer(pb.full_text(p)):
+            link = m.group(0).split("://", 1)[1]
+            if did and link not in owners:
+                owners[link] = {"deal": did, "item": (drafts.get(did) or {}).get("item") or (p.get("text") or "")[:60],
+                                "at": NOW.isoformat(timespec="seconds")}
     taken = set()
     for p in scheduled:
         if p["channelService"] == "twitter" and p.get("dueAt"):
@@ -122,6 +149,17 @@ def main():
             if not ok:
                 print(f"auto-schedule: waiting  {name}: {why}")
                 continue
+            if d.get("store") == "Amazon":
+                bad = link_problem(did, name, posts, owners)
+                if bad:
+                    print(f"auto-schedule: HOLD {name}: {bad}")
+                    pb.mark_held(did)
+                    pb.note_attention([{"at": NOW.isoformat(timespec="seconds"), "deal": did, "tag": "Couldn't verify",
+                                        "reason": bad, "item": name, "store": "Amazon", "check": ""}])
+                    for p in posts:
+                        ids = list(dict.fromkeys([t["id"] for t in p.get("tags") or []] + [vs.TAGS["Couldn't verify"]]))
+                        pb.gql(key, vs.EDIT, {"input": {"id": p["id"], "tagIds": ids}})
+                    continue
             if d.get("kind") != "deal":  # news: nothing to price-check
                 state, live, detail = "live", None, "news"
             else:
@@ -168,10 +206,15 @@ def main():
                 if r.get("__typename") != "PostActionSuccess":
                     print("   couldn't schedule", p["id"], r.get("message"))
             print(f"auto-schedule: scheduled {name} at {slot:%H:%M} ({detail or 'checked live'})")
+            for p in posts:
+                for m in SHORT_LINK.finditer(pb.full_text(p)):
+                    used[m.group(0).split("://", 1)[1]] = {"deal": did, "item": name, "at": NOW.isoformat(timespec="seconds")}
+                    owners.update(used)
             done += 1
     finally:
         browser.close()
     pb.save(pb.DRAFTS_PATH, list(drafts.values()))
+    pb.save(USED_LINKS_PATH, used)
 
 
 if __name__ == "__main__":
