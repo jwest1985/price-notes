@@ -357,6 +357,29 @@ def set_reply_cards(key, mutation, node):
     return True
 
 
+AFFILIATE_SHORT = re.compile(r"https?://(?:link\.amazon|amzn\.to)/[A-Za-z0-9]+")
+
+
+def set_threads_card(key, mutation, node):
+    """Threads posts with the link in the main post get a link card pointing at YOUR swapped Amazon link
+    (so taps on the card keep your tag); Threads builds the title and picture itself. Config threads_link_cards."""
+    if node.get("channelService") != "threads":
+        return False
+    if not (load(os.path.join(ROOT, "config.json"), {}) or {}).get("threads_link_cards"):
+        return False
+    meta = node.get("metadata") or {}
+    if len(meta.get("thread") or []) > 1:
+        return False
+    m = AFFILIATE_SHORT.search(node.get("text") or "")
+    if not m or ((meta.get("linkAttachment") or {}).get("url") == m.group(0)):
+        return False
+    body = {"type": "post", "linkAttachment": {"url": m.group(0)}}
+    if meta.get("topic"):
+        body["topic"] = meta["topic"]
+    gql(key, mutation, {"input": {"id": node["id"], "metadata": {"threads": body}}})
+    return True
+
+
 def edit_main_text(key, mutation, node, new_text):
     """Change the main text of a post; for X threads the first thread part changes with it."""
     inp = {"id": node["id"], "text": new_text}

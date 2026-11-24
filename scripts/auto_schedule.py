@@ -193,6 +193,7 @@ def main():
             for p in posts:  # link cards on Threads/Bluesky replies point at your link, not the plain store link
                 try:
                     pb.set_reply_cards(key, vs.EDIT, p)
+                    pb.set_threads_card(key, vs.EDIT, p)
                 except Exception as e:
                     print("   couldn't set the reply link card", p["id"], str(e)[:120])
             slot = next(slots, None)
