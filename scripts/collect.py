@@ -885,6 +885,11 @@ def shopify_live(domain, handle):
         return None
 
 
+SHOP_JUNK = re.compile(r"\b(?:express|priority|expedited|rush|overnight)\s+(?:delivery|shipping|handling)\b|"
+                       r"\bshipping (?:protection|insurance|upgrade)\b|\bpackage protection\b|\broute\b.*protection|"
+                       r"\bgift ?cards?\b|\be-?gift\b|\bdonation\b|\btip\b$|\bsurcharge\b|\bcustom order\b|\bdeposit\b", re.I)
+
+
 def items_from_shopify(feed, prices):
     """New price drops and new pre-orders/releases from a Shopify shop.
 
@@ -917,6 +922,8 @@ def items_from_shopify(feed, prices):
         image = ((p.get("images") or [{}])[0] or {}).get("src", "")
         if first_time:
             continue
+        if SHOP_JUNK.search(title) or (p.get("product_type") or "").lower() in ("shipping", "service", "insurance", "gift card"):
+            continue  # shop add-ons (shipping upgrades, insurance, gift cards, donations), not products
         sale_pct = round((1 - price / compare) * 100) if compare > price > 0 else 0
         is_new = old is None
         is_preorder = bool(re.search(r"pre-?order", title + " " + " ".join(p.get("tags") or []), re.I))
