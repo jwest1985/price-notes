@@ -1,0 +1,40 @@
+{
+ "date": "2026-11-23",
+ "made_at": "2026-11-24T04:47:15+00:00",
+ "sent": {
+  "twitter": 25,
+  "bluesky": 25,
+  "threads": 7
+ },
+ "errors": [],
+ "held": [
+  {
+   "item": "Esquie Blown Glass Holiday Ornament",
+   "store": "Fangamer",
+   "tags": [
+    "Out of stock"
+   ],
+   "verdict": "dead",
+   "why": "out of stock (restock watch still on)",
+   "posts": [
+    "6b04b467c0a1a00006e46c04",
+    "6b04b46618db0405bda81828"
+   ],
+   "check": ""
+  }
+ ],
+ "delete_post_ids": [
+  "6b04b467c0a1a00006e46c04",
+  "6b04b46618db0405bda81828"
+ ],
+ "pipeline": [],
+ "mix": {
+  "Amazon": 22,
+  "other stores": 10,
+  "news": 1
+ },
+ "amazon_checks": {
+  "backup": 167,
+  "unconfirmed": 13
+ }
+}
