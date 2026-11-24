@@ -44,7 +44,7 @@
     "topics_per_day": 3
   },
   "link_in_reply": [],
-  "threads_link_cards": false,
+  "threads_link_cards": true,
   "max_item_age_hours": 12,
   "max_new_drafts_per_run": 25,
   "keep_drafts": 300,
